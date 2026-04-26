@@ -82,6 +82,10 @@ Ui_MainWindowBase::Ui_MainWindowBase(std::shared_ptr<USING_FLAGS> p, std::shared
 		flags_led[i] = false;
 		led_leds[i] = nullptr;
 	}
+	menuMZ2500Options = nullptr;
+	for(int i = 0; i < 8; i++) {
+		actionMZ2500Option[i] = nullptr;
+	}
 	
 	setupUi();
 	createContextMenu();

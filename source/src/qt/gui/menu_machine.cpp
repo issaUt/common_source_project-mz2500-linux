@@ -27,6 +27,19 @@
 #include "csp_logger.h"
 #include "common.h"
 
+namespace {
+constexpr quint32 kMZ2500OptionMZ1E26 = (1u << 8);
+constexpr quint32 kMZ2500OptionMZ1E30 = (1u << 9);
+constexpr quint32 kMZ2500OptionMZ1R13 = (1u << 12);
+constexpr quint32 kMZ2500OptionMZ1R37 = (1u << 13);
+constexpr quint32 kMZ2500OptionW3100A = (1u << 14);
+
+bool is_mz2500_machine(const std::shared_ptr<USING_FLAGS>& using_flags)
+{
+	return using_flags != nullptr && using_flags->get_config_name() == QString::fromUtf8("mz2500");
+}
+}
+
 // You can Override this function: Re-define on foo/MainWindow.cpp.
 // This code is example: by X1(TurboZ).
 void Ui_MainWindowBase::retranslateMachineMenu(void)
@@ -125,6 +138,22 @@ void Ui_MainWindowBase::retranslateMachineMenu(void)
 			actionMonitorType[ii]->setText(tmps);
 		}
 	}
+	if(menuMZ2500Options != nullptr) {		static const char *texts[5] = {
+			"MZ-1E26 (Voice Communication I/F)",
+			"MZ-1E30 (SASI I/F)",
+			"MZ-1R13 (KANJI ROM)",
+			"MZ-1R37 (640KB EMM)",
+			"W3100A TCP/IP",
+		};
+		menuMZ2500Options->setTitle(QApplication::translate("MenuMachine", "MZ-2500 Options (Need Restart)", 0));
+		menuMZ2500Options->setToolTipsVisible(true);
+		for(int ii = 0; ii < 5; ii++) {
+			if(actionMZ2500Option[ii] != nullptr) {
+				actionMZ2500Option[ii]->setText(QApplication::translate("MenuMachine", texts[ii], 0));
+				actionMZ2500Option[ii]->setToolTip(QApplication::translate("MenuMachine", "Enable or disable this optional device. This will take effect after restarting the emulator.", 0));
+			}
+		}
+	}
 }
 
 void Ui_MainWindowBase::ConfigMonitorType(void)
@@ -142,6 +171,28 @@ void Ui_MainWindowBase::ConfigMonitorType(void)
 			
 			actionGroup_MonitorType->addAction(actionMonitorType[ii]);
 			menuMonitorType->addAction(actionMonitorType[ii]);
+		}
+	}
+	if(is_mz2500_machine(using_flags)) {
+		static const quint32 masks[5] = {
+			kMZ2500OptionMZ1E26,
+			kMZ2500OptionMZ1E30,
+			kMZ2500OptionMZ1R13,
+			kMZ2500OptionMZ1R37,
+			kMZ2500OptionW3100A,
+		};
+		menuMZ2500Options = new QMenu(menuMachine);
+		menuMZ2500Options->setObjectName(QString::fromUtf8("menuMZ2500Options"));
+		menuMachine->addAction(menuMZ2500Options->menuAction());
+		menuMZ2500Options->setToolTipsVisible(true);
+		for(int ii = 0; ii < 5; ii++) {
+			actionMZ2500Option[ii] = new QAction(this);
+			actionMZ2500Option[ii]->setCheckable(true);
+			actionMZ2500Option[ii]->setVisible(true);
+			actionMZ2500Option[ii]->setChecked((p_config->option_switch & masks[ii]) != 0);
+			actionMZ2500Option[ii]->setData(QVariant(masks[ii]));
+			menuMZ2500Options->addAction(actionMZ2500Option[ii]);
+			connect(actionMZ2500Option[ii], SIGNAL(toggled(bool)), this, SLOT(do_set_mz2500_option_switch(bool)));
 		}
 	}
 

@@ -17,6 +17,8 @@
 
 //#include "menuclasses.h"
 #include "qt_dialogs.h"
+#include "common.h"
+#include "config.h"
 //#include "csp_logger.h"
 
 
@@ -156,6 +158,26 @@ void Ui_MainWindowBase::set_monitor_type(void)
 
 	if((num < 0) || (num >= using_flags->get_use_monitor_type())) return;
 	p_config->monitor_type = num;
+	emit sig_emu_update_config();
+}
+
+void Ui_MainWindowBase::do_set_mz2500_option_switch(bool f)
+{
+	QAction *cp = qobject_cast<QAction*>(QObject::sender());
+	if(cp == nullptr) return;
+	if(p_config == nullptr) return;
+	if(using_flags == nullptr) return;
+	uint32_t mask = cp->data().value<uint32_t>();
+	if(mask == 0) return;
+	if(f) {
+		p_config->option_switch |= mask;
+	} else {
+		p_config->option_switch &= ~mask;
+	}
+	std::string localstr = cpp_confdir;
+	localstr += using_flags->get_config_name().toStdString();
+	localstr += ".ini";
+	save_config(localstr.c_str());
 	emit sig_emu_update_config();
 }
 

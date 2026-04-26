@@ -580,6 +580,8 @@ protected:
 	QMenu *menuPrintDevice;
 	QMenu *menuSerialDevice;
 	QMenu *menu_SetFixedCpu;
+	QMenu *menuMZ2500Options;
+	QAction *actionMZ2500Option[8];
 
 	QAction *actionDeviceType[16];
 	QAction *actionKeyboardType[16];
@@ -974,6 +976,7 @@ public slots:
 	void do_unblock_task();
 
 	void do_set_machine_feature();
+	void do_set_mz2500_option_switch(bool f);
 
 	void do_set_single_dipswitch(bool f);
 	void do_set_single_dipswitch_negative(bool f);
