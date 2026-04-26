@@ -77,6 +77,12 @@ using MZ2500::TIMER;
 
 VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 {
+	// CMU-800 vs MZ-1E32
+	if((config.option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
+	}
+	option_switch = config.option_switch;
+
 	// create devices
 	first_device = last_device = NULL;
 	dummy = new DEVICE(this, emu);	// must be 1st device
@@ -103,18 +109,26 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 //	pcm->set_context_debugger(new DEBUGGER(this, emu));
 #endif
 	rtc = new RP5C01(this, emu);	// RP-5C15
-	sasi_host = new SCSI_HOST(this, emu);
-	sasi_hdd = new SASI_HDD(this, emu);
-	sasi_hdd->set_device_name(_T("SASI Hard Disk Drive"));
-	sasi_hdd->scsi_id = 0;
-//	sasi_hdd->bytes_per_sec = 32 * 1024; // 32KB/s
-	sasi_hdd->bytes_per_sec = 3600 / 60 * 256 * 33; // 3600rpm, 256bytes x 33sectors in track (thanks Mr.Sato)
-	for(int i = 0; i < USE_HARD_DISK; i++) {
-		sasi_hdd->set_disk_handler(i, new HARDDISK(emu));
+	sasi_host = NULL;
+	sasi_hdd = NULL;
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		sasi_host = new SCSI_HOST(this, emu);
+		sasi_hdd = new SASI_HDD(this, emu);
+		sasi_hdd->set_device_name(_T("SASI Hard Disk Drive"));
+		sasi_hdd->scsi_id = 0;
+//		sasi_hdd->bytes_per_sec = 32 * 1024; // 32KB/s
+		sasi_hdd->bytes_per_sec = 3600 / 60 * 256 * 33; // 3600rpm, 256bytes x 33sectors in track (thanks Mr.Sato)
+		for(int i = 0; i < USE_HARD_DISK; i++) {
+			sasi_hdd->set_disk_handler(i, new HARDDISK(emu));
+		}
+		sasi_hdd->set_context_interface(sasi_host);
+		sasi_host->set_context_target(sasi_hdd);
 	}
-	sasi_hdd->set_context_interface(sasi_host);
-	sasi_host->set_context_target(sasi_hdd);
-	w3100a = new W3100A(this, emu);
+	if(config.option_switch & OPTION_SWITCH_W3100A) {
+		w3100a = new W3100A(this, emu);
+	} else {
+		w3100a = NULL;
+	}
 	opn = new YM2203(this, emu);
 #ifdef USE_DEBUGGER
 	opn->set_context_debugger(new DEBUGGER(this, emu));
@@ -140,10 +154,26 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_context_debugger(new DEBUGGER(this, emu));
 #endif
 	mouse = new MOUSE(this, emu);
-	mz1e26 = new MZ1E26(this, emu);
-	mz1e30 = new MZ1E30(this, emu);
-	mz1r13 = new MZ1R13(this, emu);
-	mz1r37 = new MZ1R37(this, emu);
+	if(config.option_switch & OPTION_SWITCH_MZ1E26) {
+		mz1e26 = new MZ1E26(this, emu);
+	} else {
+		mz1e26 = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		mz1e30 = new MZ1E30(this, emu);
+	} else {
+		mz1e30 = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
+		mz1r13 = new MZ1R13(this, emu);
+	} else {
+		mz1r13 = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R37) {
+		mz1r37 = new MZ1R37(this, emu);
+	} else {
+		mz1r37 = NULL;
+	}
 	printer = new PRINTER(this, emu);
 	serial = new SERIAL(this, emu);
 	timer = new TIMER(this, emu);
@@ -205,7 +235,11 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	memory->set_context_cpu(cpu);
 	memory->set_context_crtc(crtc);
 	mouse->set_context_sio(sio);
-	mz1e30->set_context_host(sasi_host);
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		sasi_host->set_context_irq(mz1e30, SIG_MZ1E30_IRQ, 1);
+		sasi_host->set_context_drq(mz1e30, SIG_MZ1E30_DRQ, 1);
+		mz1e30->set_context_host(sasi_host);
+	}
 	if(config.printer_type == 0) {
 		printer->set_context_prn(new PRNFILE(this, emu));
 	} else if(config.printer_type == 1) {
@@ -236,25 +270,35 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	interrupt->set_context_intr(cpu, 2);
 
 	// i/o bus
-	io->set_iomap_range_rw(0x60, 0x63, w3100a);
+	if(config.option_switch & OPTION_SWITCH_W3100A) {
+		io->set_iomap_range_rw(0x60, 0x63, w3100a);
+	}
 	io->set_iomap_range_rw(0xa0, 0xa3, serial);
-	io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
-	io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);
-	io->set_iomap_range_rw(0xac, 0xad, mz1r37);
+	if(config.option_switch & OPTION_SWITCH_MZ1E30) {
+		io->set_iomap_range_rw(0xa4, 0xa5, mz1e30);
+		io->set_iomap_range_rw(0xa8, 0xa9, mz1e30);
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R37) {
+		io->set_iomap_range_rw(0xac, 0xad, mz1r37);
+	}
 	io->set_iomap_single_w(0xae, crtc);
 	io->set_iomap_range_rw(0xb0, 0xb3, serial);
 	io->set_iomap_range_rw(0xb4, 0xb5, memory);
 	io->set_iomap_single_w(0xb7, memory);
-	io->set_iomap_range_rw(0xb8, 0xb9, mz1r13);
+	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
+		io->set_iomap_range_rw(0xb8, 0xb9, mz1r13);
+	}
 	io->set_iomap_range_rw(0xbc, 0xbf, crtc);
 	io->set_iomap_range_w(0xc6, 0xc7, interrupt);
 	io->set_iomap_range_rw(0xc8, 0xc9, opn);
-	io->set_iomap_single_rw(0xca, mz1e26);
+	if(config.option_switch & OPTION_SWITCH_MZ1E26) {
+		io->set_iomap_single_rw(0xca, mz1e26);
+	}
 	io->set_iomap_single_rw(0xcc, calendar);
 	io->set_iomap_single_w(0xcd, serial);
 	io->set_iomap_range_w(0xce, 0xcf, memory);
 	io->set_iomap_range_rw(0xd8, 0xdb, fdc);
-	io->set_iomap_range_w(0xdc, 0xdd, floppy);
+	io->set_iomap_range_w(0xdc, 0xde, floppy);
 	io->set_iomap_range_rw(0xe0, 0xe3, pio_i);
 	io->set_iomap_range_rw(0xe4, 0xe7, pit);
 	io->set_iomap_range_rw(0xe8, 0xeb, pio);
@@ -290,6 +334,7 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	}
 	boot_mode = config.boot_mode;
 	monitor_type = config.monitor_type;
+	option_switch = config.option_switch;
 }
 
 VM::~VM()
@@ -625,6 +670,14 @@ bool VM::is_frame_skippable()
 
 void VM::update_config()
 {
+	// CMU-800 vs MZ-1E32
+	if(!(option_switch & OPTION_SWITCH_CMU800) && (config.option_switch & OPTION_SWITCH_CMU800)) {
+		config.option_switch &= ~OPTION_SWITCH_MZ1E32;
+	} else if(!(option_switch & OPTION_SWITCH_MZ1E32) && (config.option_switch & OPTION_SWITCH_MZ1E32)) {
+		config.option_switch &= ~OPTION_SWITCH_CMU800;
+	}
+	option_switch = config.option_switch;
+
 	for(DEVICE* device = first_device; device; device = device->next_device) {
 		device->update_config();
 	}

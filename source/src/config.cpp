@@ -64,6 +64,9 @@ void initialize_config()
 	#if defined(USE_DIPSWITCH) && defined(DIPSWITCH_DEFAULT)
 		config.dipswitch = DIPSWITCH_DEFAULT;
 	#endif
+#if defined(USE_OPTION_SWITCH) && defined(OPTION_SWITCH_DEFAULT)
+		config.option_switch = OPTION_SWITCH_DEFAULT;
+	#endif
 	#if defined(USE_DEVICE_TYPE) && defined(DEVICE_TYPE_DEFAULT)
 		config.device_type = DEVICE_TYPE_DEFAULT;
 	#endif
@@ -277,6 +280,9 @@ void load_config(const _TCHAR *config_path)
 	#endif
 	#ifdef USE_DIPSWITCH
 		config.dipswitch = MyGetPrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
+	#endif
+#ifdef USE_OPTION_SWITCH
+		config.option_switch = MyGetPrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
 	#endif
 	#ifdef USE_MACHINE_FEATURES
 		for(int ii = 0; ii < USE_MACHINE_FEATURES; ii++) {
@@ -692,6 +698,9 @@ void save_config(const _TCHAR *config_path)
 	#ifdef USE_DIPSWITCH
 		MyWritePrivateProfileInt(_T("Control"), _T("DipSwitch"), config.dipswitch, config_path);
 	#endif
+#ifdef USE_OPTION_SWITCH
+		MyWritePrivateProfileInt(_T("Control"), _T("OptionSwitch"), config.option_switch, config_path);
+	#endif
 	#ifdef USE_MACHINE_FEATURES
 		for(int ii = 0; ii < USE_MACHINE_FEATURES; ii++) {
 			if(ii >= 32) break;
@@ -1032,6 +1041,9 @@ bool process_config_state(void *f, bool loading)
 	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_DIPSWITCH)
 		state_fio->StateValue(config.dipswitch);
+	#endif
+#if defined(USE_SHARED_DLL) || defined(USE_OPTION_SWITCH)
+		state_fio->StateValue(config.option_switch);
 	#endif
 	#if defined(USE_SHARED_DLL) || defined(USE_DEVICE_TYPE)
 		state_fio->StateValue(config.device_type);

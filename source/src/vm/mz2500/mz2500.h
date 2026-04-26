@@ -36,6 +36,7 @@
 //#define Z80_NO_EVENT_IN_OPECODE
 
 // device informations for win32
+#define USE_OPTION_SWITCH
 #define USE_SPECIAL_RESET	1
 #define USE_BOOT_MODE		3
 #define USE_FLOPPY_DISK		4
@@ -56,6 +57,24 @@
 #define USE_DEBUGGER
 #define USE_STATE
 #define USE_CPU_Z80
+
+#define OPTION_SWITCH_CMU800	(1 << 0)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_10	(1 << 1)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_10	(1 << 2)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_5	(1 << 3)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_5	(1 << 4)
+#define OPTION_SWITCH_CMU800_TEMPO_INC_1	(1 << 5)
+#define OPTION_SWITCH_CMU800_TEMPO_DEC_1	(1 << 6)
+#define OPTION_SWITCH_CMU800_TEMPO_160		(1 << 7)
+#define OPTION_SWITCH_MZ1E26	(1 << 8)
+#define OPTION_SWITCH_MZ1E30	(1 << 9)
+#define OPTION_SWITCH_MZ1E32	(1 << 10)
+#define OPTION_SWITCH_MZ1R12	(1 << 11)
+#define OPTION_SWITCH_MZ1R13	(1 << 12)
+#define OPTION_SWITCH_MZ1R37	(1 << 13)
+#define OPTION_SWITCH_W3100A	(1 << 14)
+
+#define OPTION_SWITCH_DEFAULT	(OPTION_SWITCH_CMU800 | OPTION_SWITCH_MZ1E26 | OPTION_SWITCH_MZ1E30 | OPTION_SWITCH_MZ1R12 | OPTION_SWITCH_MZ1R13 | OPTION_SWITCH_MZ1R37)
 
 #include "../../common.h"
 #include "../../fileio.h"
@@ -149,6 +168,7 @@ protected:
 	// monitor type cache
 	int boot_mode;
 	int monitor_type;
+	int option_switch;
 
 public:
 	// ----------------------------------------
