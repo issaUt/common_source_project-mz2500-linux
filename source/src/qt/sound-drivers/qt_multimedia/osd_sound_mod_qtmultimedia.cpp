@@ -463,13 +463,27 @@ bool M_QT_MULTIMEDIA::is_capture_driver_stopped()
 
 M_QT_MULTIMEDIA::DeviceInfoType M_QT_MULTIMEDIA::get_output_device_by_name(QString driver_name)
 {
+	if(m_audioOutputsList.isEmpty()) {
+		initialize_sink_sound_devices_list();
+		__debug_log_func(_T("output device list was empty, reloaded count=%d"), m_audioOutputsList.count());
+	}
 	DeviceInfoType dest_device;
-	if((driver_name == QString::fromUtf8("Default")) || (driver_name.isEmpty())) {
+	const bool use_default_device = ((driver_name == QString::fromUtf8("Default")) || driver_name.isEmpty());
+	if(use_default_device) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 		dest_device = QMediaDevices::defaultAudioOutput();
 #else
 		dest_device = QAudioDeviceInfo::defaultOutputDevice();
 #endif
+		if(dest_device.isNull()) {
+			initialize_sink_sound_devices_list();
+			__debug_log_func(_T("default output device was null, reloaded output count=%d"), m_audioOutputsList.count());
+		}
+		if(dest_device.isNull() && !m_audioOutputsList.isEmpty()) {
+			dest_device = m_audioOutputsList.front();
+			QString fallback_name = get_audio_device_name(dest_device);
+			__debug_log_func(_T("desired_driver=%s default device was null, falling back to first available output=%s"), driver_name.toLocal8Bit().constData(), fallback_name.toLocal8Bit().constData());
+		}
 	} else {
 		for(auto i = m_audioOutputsList.begin(); i != m_audioOutputsList.end(); ++i) {
 			QString _s = get_audio_device_name(*i);
@@ -480,7 +494,7 @@ M_QT_MULTIMEDIA::DeviceInfoType M_QT_MULTIMEDIA::get_output_device_by_name(QStri
 		}
 	}
 	if(dest_device.isNull()) {
-		__debug_log_func(_T("E:desired_driver=%s but not found."), driver_name.toLocal8Bit().constData());
+		__debug_log_func(_T("E:desired_driver=%s but not found. outputs=%d"), driver_name.toLocal8Bit().constData(), m_audioOutputsList.count());
 		return dest_device;
 	}
 	QString dest_device_name = get_audio_device_name(dest_device);
@@ -947,12 +961,29 @@ int64_t M_QT_MULTIMEDIA::update_sound(void* datasrc, int samples)
 	}
 	
 	if(q != nullptr) {
-		qint64 wrote = 0;
-		wrote = q->write((const char *)datasrc, (qint64)sample_bytes);
+		qint64 frame_bytes = (qint64)(m_sink_channels.load() * m_sink_wordsize.load());
+		if(frame_bytes <= 0) {
+			return 0;
+		}
+		qint64 writable_bytes = sample_bytes;
+		if(drv.get() != nullptr) {
+			qint64 sink_free = drv->bytesFree();
+			if(sink_free <= 0) {
+				return 0;
+			}
+			if(sink_free < writable_bytes) {
+				writable_bytes = sink_free;
+			}
+		}
+		writable_bytes = (writable_bytes / frame_bytes) * frame_bytes;
+		if(writable_bytes <= 0) {
+			return 0;
+		}
+		qint64 wrote = q->write((const char *)datasrc, writable_bytes);
 		if(wrote <= 0) {
 			return 0;
 		}
-		wrote = wrote / sample_bytes;
+		wrote = wrote / frame_bytes;
 		return (int64_t)wrote;
 	}
 	return 0;
