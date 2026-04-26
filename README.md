@@ -124,9 +124,11 @@ MZ2500_FD1=./SOSPROG.D88 \
 
 ## デバッガ
 
-MZ-2500 向けのデバッガ拡張については、次の文書を参照してください。
+MZ-2500 向けに追加したデバッガ拡張については、`DebuggerForMZ2500.md` を参照してください。
 
-- `DebuggerForMZ2500.md`
+- `Memory Bus(MZ2500)` を対象にしたメモリ確認
+- `MMAP`, `MSTAT`, `MRAM`, `MVRAM`
+- `LB`, `LH`, `LS`, `WB`, `WH`
 
 ## 謝辞
 
