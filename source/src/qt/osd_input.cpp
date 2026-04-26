@@ -568,6 +568,9 @@ void OSD_BASE::key_down_native(int code, bool repeat)
 		code = VK_KANJI;
 		keep_frames = true;
 	}
+	if(code == VK_KANJI) {
+		keep_frames = true;
+	}
 	if(!(code == VK_LSHIFT || code == VK_RSHIFT || code == VK_LCONTROL || code == VK_RCONTROL || code == VK_LMENU || code == VK_RMENU || code == VK_MENU)) {
 		code = keycode_conv[code];
 	}

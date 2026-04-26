@@ -159,11 +159,11 @@ static const keydef_table_t default_key_table_106_QtScan[] = {
 	{VK_F8,  74, "PF8"},
 	{VK_F9,  75, "PF9"},
 	{VK_F10, 76, "PF10"},
-	{VK_F11, 95, "PF11"},
+	{VK_F11, 49, "PF11"},
 	{VK_F12, 96, "PF12"},
 	// Power, Sleep, Wake is not implemented, they are'nt safety.
 	// Line 1
-	{VK_KANJI, 49, "KANJI"}, // Hankaku/Zenkaku
+	{VK_KANJI, 95, "KANJI"}, // F11 on Linux/WSLg by default
 	{'0', 19, "0 (Full Key)"},
 	{'1', 10, "1 (Full Key)"},
 	{'2', 11, "2 (Full Key)"},

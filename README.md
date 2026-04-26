@@ -121,6 +121,7 @@ MZ2500_FD1=./SOSPROG.D88 \
 - Linux / WSL 版では MOVIE 関連機能を現在無効化しています
 - WSLg + Qt Multimedia 環境では、音声まわりの警告が出ることがあります
 - ウィンドウ位置指定は、WSLg 側の制約で安定しないことがあります
+- Linux / WSLg では、MZ-2500 の ALGO キーは既定で `F11` に割り当てています（全角・半角キーは key release が不安定な環境があるため）
 
 ## デバッガ
 
