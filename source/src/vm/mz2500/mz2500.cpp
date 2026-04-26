@@ -48,6 +48,7 @@
 #include "mouse.h"
 #include "mz1e26.h"
 #include "mz1e30.h"
+#include "mz1r12.h"
 #include "mz1r13.h"
 #include "mz1r37.h"
 #include "printer.h"
@@ -65,6 +66,7 @@ using MZ2500::MEMORY;
 using MZ2500::MOUSE;
 using MZ2500::MZ1E26;
 using MZ2500::MZ1E30;
+using MZ2500::MZ1R12;
 using MZ2500::MZ1R13;
 using MZ2500::MZ1R37;
 using MZ2500::PRINTER;
@@ -163,6 +165,11 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 		mz1e30 = new MZ1E30(this, emu);
 	} else {
 		mz1e30 = NULL;
+	}
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		mz1r12 = new MZ1R12(this, emu);
+	} else {
+		mz1r12 = NULL;
 	}
 	if(config.option_switch & OPTION_SWITCH_MZ1R13) {
 		mz1r13 = new MZ1R13(this, emu);
@@ -305,6 +312,9 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	io->set_iomap_single_rw(0xef, joystick);
 	io->set_iomap_range_w(0xf0, 0xf3, timer);
 	io->set_iomap_range_rw(0xf4, 0xf7, crtc);
+	if(config.option_switch & OPTION_SWITCH_MZ1R12) {
+		io->set_iomap_range_rw(0xf8, 0xfa, mz1r12);
+	}
 	io->set_iomap_range_rw(0xfe, 0xff, printer);
 
 	if(config.boot_mode == 0) {

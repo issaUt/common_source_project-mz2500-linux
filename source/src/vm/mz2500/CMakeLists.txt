@@ -15,6 +15,7 @@ set(MZ2500_SRCS
 	mz2500.cpp
 	mz1e26.cpp
 	mz1e30.cpp
+	mz1r12.cpp
 	mz1r13.cpp
 	mz1r37.cpp
 	serial.cpp
