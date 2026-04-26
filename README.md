@@ -1,5 +1,9 @@
 # common_source_project-mz2500-linux
 
+> [!NOTE]
+> このブランチは、武田さんの比較的新しい MZ-2500 関連実装を段階的に取り込むための検証ブランチです。
+> 通常利用には `master` ブランチを使用してください。
+
 Common Source Code Project の Qt/Linux 系を土台にした、SHARP MZ-2500 向け Linux / WSL 実用化ブランチです。
 
 ## 概要
