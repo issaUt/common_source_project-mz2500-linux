@@ -14,6 +14,8 @@
 #include "../../emu.h"
 #include "../device.h"
 
+class DEBUGGER;
+
 #define SIG_MEMORY_HBLANK_TEXT	0
 #define SIG_MEMORY_VBLANK_TEXT	1
 #define SIG_MEMORY_HBLANK_GRAPH	2
@@ -26,6 +28,7 @@ class MEMORY : public DEVICE
 {
 private:
 	DEVICE *d_cpu, *d_crtc;
+	DEBUGGER* d_debugger;
 
 	uint8_t* rbank[32];
 	uint8_t* wbank[32];
@@ -62,6 +65,7 @@ private:
 public:
 	MEMORY(VM_TEMPLATE* parent_vm, EMU_TEMPLATE* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
+		d_debugger = NULL;
 		set_device_name(_T("Memory Bus(MZ2500)"));
 	}
 	~MEMORY() {}
@@ -79,6 +83,19 @@ public:
 	uint32_t __FASTCALL read_io8(uint32_t addr) override;
 	void __FASTCALL write_signal(int id, uint32_t data, uint32_t mask) override;
 	bool process_state(FILEIO* state_fio, bool loading) override;
+	bool is_debugger_available() override
+	{
+		return (d_debugger != NULL) ? true : false;
+	}
+	void *get_debugger() override
+	{
+		return d_debugger;
+	}
+	uint64_t get_debug_data_addr_space() override;
+	void __FASTCALL write_debug_data8(uint32_t addr, uint32_t data) override;
+	uint32_t __FASTCALL read_debug_data8(uint32_t addr) override;
+	bool get_debug_regs_info(_TCHAR *buffer, size_t buffer_len) override;
+	bool get_debug_regs_description(_TCHAR *buffer, size_t buffer_len) override;
 
 	// unique functions
 	void set_context_cpu(DEVICE* device)
@@ -88,6 +105,10 @@ public:
 	void set_context_crtc(DEVICE* device)
 	{
 		d_crtc = device;
+	}
+	void set_context_debugger(DEBUGGER* device)
+	{
+		d_debugger = device;
 	}
 	uint8_t* get_vram()
 	{

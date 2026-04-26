@@ -285,14 +285,23 @@ void* debugger_thread(void *lpx)
 	helplist.push_back("R - show register(s)");
 	helplist.push_back("R <reg> <value> - edit register");
 	helplist.push_back("RH - show registers description");
+	helplist.push_back("MMAP - show MZ-2500 current memory map (Memory Bus target)");
+	helplist.push_back("MSTAT - show MZ-2500 memory state (Memory Bus target)");
+	helplist.push_back("MRAM <range> - dump MZ-2500 main RAM");
+	helplist.push_back("MVRAM <range> - dump MZ-2500 VRAM");
 	helplist.push_back("S <range> <list> - search");
 	helplist.push_back("U [<range>] - unassemble");
 	helplist.push_back("UT [<steps> | <steps> <logging_file>] - unassemble back trace");
 	helplist.push_back("UCT [<steps>] - display call trace");
 	helplist.push_back("H <value> <value> - hexadd");
 	helplist.push_back("N <filename> - name");
-	helplist.push_back("L [<range>] - load binary/hex/symbol file");
-	helplist.push_back("W <range> - write binary/hex file");
+	helplist.push_back("L [<range>] - load file by extension (legacy auto detect)");
+	helplist.push_back("LB [<range>] - load binary file");
+	helplist.push_back("LH [<offset>] - load Intel HEX file");
+	helplist.push_back("LS - load symbol file");
+	helplist.push_back("W <range> - write file by extension (legacy auto detect)");
+	helplist.push_back("WB <range> - write binary file");
+	helplist.push_back("WH <range> - write Intel HEX file");
 	helplist.push_back("SC - clear symbol(s)");
 	helplist.push_back("SL - list symbol(s)");
 	helplist.push_back("BX [ON|OFF] - ON/OFF to STOP ON EXCEPTION");
@@ -586,6 +595,46 @@ void* debugger_thread(void *lpx)
 					params[num++] = token;
 				}
 			}
+			auto dump_memory_range = [&](uint32_t start_addr, uint32_t end_addr) {
+				start_addr %= target->get_debug_data_addr_space();
+				end_addr %= target->get_debug_data_addr_space();
+
+				if(start_addr > end_addr) {
+					end_addr = (uint32_t)(target->get_debug_data_addr_space() - 1);
+				}
+				p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
+				my_printf(p->osd, _T("          +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F  0123456789ABCDEF\n"));
+				p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
+				for(uint64_t addr = start_addr & ~0x0f; addr <= end_addr; addr++) {
+					if(addr > target->get_debug_data_addr_space() - 1) {
+						end_addr = (uint32_t)(target->get_debug_data_addr_space() - 1);
+						break;
+					}
+					if((addr & 0x0f) == 0) {
+						my_printf(p->osd, _T("%08X "), addr % target->get_debug_data_addr_space());
+						memset(buffer, 0, sizeof(buffer));
+					}
+					if(addr < start_addr) {
+						my_printf(p->osd, _T("   "));
+						buffer[addr & 0x0f] = _T(' ');
+					} else {
+						uint32_t data = target->read_debug_data8((uint32_t)(addr % target->get_debug_data_addr_space()));
+						my_printf(p->osd, ((addr & 0x0f) == 8) ? _T("-%02X"): _T(" %02X"), data);
+						buffer[addr & 0x0f] = ((data >= 0x20 && data <= 0x7e) || (cp932 && data >= 0xa1 && data <= 0xdf)) ? data : _T('.');
+					}
+					if((addr & 0x0f) == 0x0f) {
+						my_printf(p->osd, _T("  %s\n"), buffer);
+					}
+				}
+				if((end_addr & 0x0f) != 0x0f) {
+					for(uint32_t addr = (end_addr & 0x0f) + 1; addr <= 0x0f; addr++) {
+						my_printf(p->osd, _T("   "));
+					}
+					my_printf(p->osd, _T("  %s\n"), buffer);
+				}
+				dump_addr = (end_addr + 1) % target->get_debug_data_addr_space();
+				prev_command[1] = _T('\0');
+			};
 			if(_tcsicmp(params[0], _T("D")) == 0) {
 				if(num <= 3) {
 					uint32_t start_addr = dump_addr;
@@ -598,43 +647,33 @@ void* debugger_thread(void *lpx)
 					if(num == 3) {
 						end_addr = my_hexatoi(target, params[2]);
 					}
-					end_addr %= target->get_debug_data_addr_space();
-
-					if(start_addr > end_addr) {
-						end_addr = (uint32_t)(target->get_debug_data_addr_space() - 1);
+					dump_memory_range(start_addr, end_addr);
+				} else {
+					my_printf(p->osd, _T("invalid parameter number\n"));
+				}
+			} else if(_tcsicmp(params[0], _T("MMAP")) == 0 || _tcsicmp(params[0], _T("MSTAT")) == 0) {
+				if(_tcsicmp(target->get_device_name(), _T("Memory Bus(MZ2500)")) != 0) {
+					my_printf(p->osd, _T("Select Memory Bus(MZ2500) with ! device <id> first.\n"));
+				} else if(target->get_debug_regs_info(buffer, array_length(buffer))) {
+					my_printf(p->osd, _T("%s\n"), buffer);
+				} else {
+					my_printf(p->osd, _T("memory map information is unavailable.\n"));
+				}
+			} else if(_tcsicmp(params[0], _T("MRAM")) == 0 || _tcsicmp(params[0], _T("MVRAM")) == 0) {
+				if(_tcsicmp(target->get_device_name(), _T("Memory Bus(MZ2500)")) != 0) {
+					my_printf(p->osd, _T("Select Memory Bus(MZ2500) with ! device <id> first.\n"));
+				} else if(num <= 3) {
+					uint32_t base_addr = (_tcsicmp(params[0], _T("MVRAM")) == 0) ? 0x40000 : 0x00000;
+					uint32_t start_addr = base_addr;
+					uint32_t end_addr = base_addr + 8 * 16 - 1;
+					if(num >= 2) {
+						start_addr = base_addr + my_hexatoi(target, params[1]);
+						end_addr = start_addr + 8 * 16 - 1;
 					}
-					p->osd->set_console_text_attribute(OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-					my_printf(p->osd, _T("          +0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +A +B +C +D +E +F  0123456789ABCDEF\n"));
-					p->osd->set_console_text_attribute(OSD_CONSOLE_RED | OSD_CONSOLE_GREEN | OSD_CONSOLE_BLUE | OSD_CONSOLE_INTENSITY);
-					for(uint64_t addr = start_addr & ~0x0f; addr <= end_addr; addr++) {
-						if(addr > target->get_debug_data_addr_space() - 1) {
-							end_addr = (uint32_t)(target->get_debug_data_addr_space() - 1);
-							break;
-						}
-						if((addr & 0x0f) == 0) {
-							my_printf(p->osd, _T("%08X "), addr % target->get_debug_data_addr_space());
-							memset(buffer, 0, sizeof(buffer));
-						}
-						if(addr < start_addr) {
-							my_printf(p->osd, _T("   "));
-							buffer[addr & 0x0f] = _T(' ');
-						} else {
-							uint32_t data = target->read_debug_data8((uint32_t)(addr % target->get_debug_data_addr_space()));
-							my_printf(p->osd, ((addr & 0x0f) == 8) ? _T("-%02X"): _T(" %02X"), data);
-							buffer[addr & 0x0f] = ((data >= 0x20 && data <= 0x7e) || (cp932 && data >= 0xa1 && data <= 0xdf)) ? data : _T('.');
-						}
-						if((addr & 0x0f) == 0x0f) {
-							my_printf(p->osd, _T("  %s\n"), buffer);
-						}
+					if(num == 3) {
+						end_addr = base_addr + my_hexatoi(target, params[2]);
 					}
-					if((end_addr & 0x0f) != 0x0f) {
-						for(uint32_t addr = (end_addr & 0x0f) + 1; addr <= 0x0f; addr++) {
-							my_printf(p->osd, _T("   "));
-						}
-						my_printf(p->osd, _T("  %s\n"), buffer);
-					}
-					dump_addr = (end_addr + 1) % target->get_debug_data_addr_space();
-					prev_command[1] = _T('\0'); // remove parameters to dump continuously
+					dump_memory_range(start_addr, end_addr);
 				} else {
 					my_printf(p->osd, _T("invalid parameter number\n"));
 				}
@@ -1043,12 +1082,23 @@ void* debugger_thread(void *lpx)
 				} else {
 					my_printf(p->osd, _T("invalid parameter number\n"));
 				}
-			} else if(_tcsicmp(params[0], _T("L")) == 0) {
+			} else if(
+				_tcsicmp(params[0], _T("L")) == 0 ||
+				_tcsicmp(params[0], _T("LB")) == 0 ||
+				_tcsicmp(params[0], _T("LH")) == 0 ||
+				_tcsicmp(params[0], _T("LS")) == 0) {
 				if(target_debugger == NULL) {
 					my_printf(p->osd, _T("debugger is not attached to target device %s\n"), target->this_device_name);
 				} else {
 					FILEIO* fio = new FILEIO();
-					if(check_file_extension(cpu_debugger->file_path, _T(".sym"))) {
+					bool force_auto = (_tcsicmp(params[0], _T("L")) == 0);
+					bool force_bin = (_tcsicmp(params[0], _T("LB")) == 0);
+					bool force_hex = (_tcsicmp(params[0], _T("LH")) == 0);
+					bool force_sym = (_tcsicmp(params[0], _T("LS")) == 0);
+					bool is_sym = check_file_extension(cpu_debugger->file_path, _T(".sym"));
+					bool is_hex = check_file_extension(cpu_debugger->file_path, _T(".hex"));
+
+					if(force_sym || (force_auto && is_sym)) {
 						if(fio->Fopen(cpu_debugger->file_path, FILEIO_READ_ASCII)) {
 							target_debugger->release_symbols();
 							_TCHAR line[1024];
@@ -1076,7 +1126,7 @@ void* debugger_thread(void *lpx)
 						} else {
 							my_printf(p->osd, _T("can't open %s\n"), cpu_debugger->file_path);
 						}
-					} else if(check_file_extension(cpu_debugger->file_path, _T(".hex"))) {
+					} else if(force_hex || (force_auto && is_hex)) {
 						if(fio->Fopen(cpu_debugger->file_path, FILEIO_READ_ASCII)) {
 							uint32_t start_addr = 0, linear = 0, segment = 0;
 							if(num >= 2) {
@@ -1106,6 +1156,12 @@ void* debugger_thread(void *lpx)
 						} else {
 							my_printf(p->osd, _T("can't open %s\n"), cpu_debugger->file_path);
 						}
+					} else if(force_sym) {
+						my_printf(p->osd, _T("LS expects a .sym file\n"));
+					} else if(force_hex) {
+						my_printf(p->osd, _T("LH expects a .hex file\n"));
+					} else if(force_bin && (is_hex || is_sym)) {
+						my_printf(p->osd, _T("LB expects a binary file, not %s\n"), cpu_debugger->file_path);
 					} else {
 						if(fio->Fopen(cpu_debugger->file_path, FILEIO_READ_BINARY)) {
 							uint32_t start_addr = 0x100, end_addr = (uint32_t)(target->get_debug_data_addr_space() - 1);
@@ -1129,20 +1185,39 @@ void* debugger_thread(void *lpx)
 					}
 					delete fio;
 				}
-			} else if(_tcsicmp(params[0], _T("W")) == 0) {
+			} else if(
+				_tcsicmp(params[0], _T("W")) == 0 ||
+				_tcsicmp(params[0], _T("WB")) == 0 ||
+				_tcsicmp(params[0], _T("WH")) == 0) {
 				if(target_debugger == NULL) {
 					my_printf(p->osd, _T("debugger is not attached to target device %s\n"), target->this_device_name);
 				} else if(num == 3) {
 					uint32_t start_addr = my_hexatoi(target, params[1]) % target->get_debug_data_addr_space(), end_addr = my_hexatoi(target, params[2]) % target->get_debug_data_addr_space();
 					FILEIO* fio = new FILEIO();
-					if(check_file_extension(cpu_debugger->file_path, _T(".hex"))) {
+					bool force_auto = (_tcsicmp(params[0], _T("W")) == 0);
+					bool force_bin = (_tcsicmp(params[0], _T("WB")) == 0);
+					bool force_hex = (_tcsicmp(params[0], _T("WH")) == 0);
+					bool is_hex = check_file_extension(cpu_debugger->file_path, _T(".hex"));
+					if(force_hex || (force_auto && is_hex)) {
 						// write intel hex format file
 						if(fio->Fopen(cpu_debugger->file_path, FILEIO_WRITE_ASCII)) {
 							uint32_t addr = start_addr;
+							uint32_t current_linear = 0xffffffff;
 							while(addr <= end_addr) {
+								uint32_t linear = (addr >> 16) & 0xffff;
+								if(linear != current_linear) {
+									uint32_t sum = 0x02 + 0x00 + 0x00 + 0x04 + ((linear >> 8) & 0xff) + (linear & 0xff);
+									fio->Fprintf(":%02X%04X%02X%04X%02X\n", 0x02, 0x0000, 0x04, linear, (0x100 - (sum & 0xff)) & 0xff);
+									current_linear = linear;
+								}
 								uint32_t len = min(end_addr - addr + 1, (uint32_t)16);
-								uint32_t sum = len + ((addr >> 8) & 0xff) + (addr & 0xff) + 0x00;
-								fio->Fprintf(":%02X%04X%02X", len, addr & 0xffff, 0x00);
+								uint32_t low_addr = addr & 0xffff;
+								uint32_t boundary = 0x10000 - low_addr;
+								if(boundary < len) {
+									len = boundary;
+								}
+								uint32_t sum = len + ((low_addr >> 8) & 0xff) + (low_addr & 0xff) + 0x00;
+								fio->Fprintf(":%02X%04X%02X", len, low_addr, 0x00);
 								for(uint32_t i = 0; i < len; i++) {
 									uint8_t data = target->read_debug_data8((addr++) % target->get_debug_data_addr_space());
 									sum += data;
@@ -1155,6 +1230,10 @@ void* debugger_thread(void *lpx)
 						} else {
 							my_printf(p->osd, _T("can't open %s\n"), cpu_debugger->file_path);
 						}
+					} else if(force_hex) {
+						my_printf(p->osd, _T("WH expects a .hex file\n"));
+					} else if(force_bin && is_hex) {
+						my_printf(p->osd, _T("WB expects a binary filename, not %s\n"), cpu_debugger->file_path);
 					} else {
 						if(fio->Fopen(cpu_debugger->file_path, FILEIO_WRITE_BINARY)) {
 							for(uint32_t addr = start_addr; addr <= end_addr; addr++) {

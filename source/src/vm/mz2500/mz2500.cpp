@@ -136,6 +136,9 @@ VM::VM(EMU_TEMPLATE* parent_emu) : VM_TEMPLATE(parent_emu)
 	joystick = new JOYSTICK(this, emu);
 	keyboard = new KEYBOARD(this, emu);
 	memory = new MEMORY(this, emu);
+#ifdef USE_DEBUGGER
+	memory->set_context_debugger(new DEBUGGER(this, emu));
+#endif
 	mouse = new MOUSE(this, emu);
 	mz1e26 = new MZ1E26(this, emu);
 	mz1e30 = new MZ1E30(this, emu);

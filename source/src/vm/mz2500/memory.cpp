@@ -10,6 +10,16 @@
 #include "./memory.h"
 namespace MZ2500 {
 
+static const uint32_t DEBUG_ADDR_RAM   = 0x00000;
+static const uint32_t DEBUG_ADDR_VRAM  = 0x40000;
+static const uint32_t DEBUG_ADDR_TVRAM = 0x60000;
+static const uint32_t DEBUG_ADDR_PCG   = 0x62000;
+static const uint32_t DEBUG_ADDR_IPL   = 0x64000;
+static const uint32_t DEBUG_ADDR_DIC   = 0x6c000;
+static const uint32_t DEBUG_ADDR_KANJI = 0xac000;
+static const uint32_t DEBUG_ADDR_PHONE = 0xec000;
+static const uint32_t DEBUG_ADDR_END   = 0xf4000;
+
 #define PAGE_TYPE_NORMAL	0
 #define PAGE_TYPE_TVRAM		1
 #define PAGE_TYPE_GVRAM		2
@@ -508,6 +518,146 @@ bool MEMORY::process_state(FILEIO* state_fio, bool loading)
 		}
 		update_vram_map();
 	}
+	return true;
+}
+
+uint64_t MEMORY::get_debug_data_addr_space()
+{
+	return DEBUG_ADDR_END;
+}
+
+void MEMORY::write_debug_data8(uint32_t addr, uint32_t data)
+{
+	addr %= DEBUG_ADDR_END;
+	if(addr < DEBUG_ADDR_VRAM) {
+		ram[addr] = data;
+	} else if(addr < DEBUG_ADDR_TVRAM) {
+		vram[addr - DEBUG_ADDR_VRAM] = data;
+	} else if(addr < DEBUG_ADDR_PCG) {
+		uint32_t ofs = addr - DEBUG_ADDR_TVRAM;
+		if(ofs < sizeof(tvram)) {
+			tvram[ofs] = data;
+		}
+	} else if(addr < DEBUG_ADDR_IPL) {
+		pcg[addr - DEBUG_ADDR_PCG] = data;
+	}
+}
+
+uint32_t MEMORY::read_debug_data8(uint32_t addr)
+{
+	addr %= DEBUG_ADDR_END;
+	if(addr < DEBUG_ADDR_VRAM) {
+		return ram[addr];
+	} else if(addr < DEBUG_ADDR_TVRAM) {
+		return vram[addr - DEBUG_ADDR_VRAM];
+	} else if(addr < DEBUG_ADDR_PCG) {
+		uint32_t ofs = addr - DEBUG_ADDR_TVRAM;
+		return (ofs < sizeof(tvram)) ? tvram[ofs] : 0xff;
+	} else if(addr < DEBUG_ADDR_IPL) {
+		return pcg[addr - DEBUG_ADDR_PCG];
+	} else if(addr < DEBUG_ADDR_DIC) {
+		return ipl[addr - DEBUG_ADDR_IPL];
+	} else if(addr < DEBUG_ADDR_KANJI) {
+		return dic[addr - DEBUG_ADDR_DIC];
+	} else if(addr < DEBUG_ADDR_PHONE) {
+		return kanji[addr - DEBUG_ADDR_KANJI];
+	}
+	return phone[addr - DEBUG_ADDR_PHONE];
+}
+
+bool MEMORY::get_debug_regs_info(_TCHAR *buffer, size_t buffer_len)
+{
+	static const _TCHAR *page_type_name[] = {
+		_T("NORMAL"),
+		_T("TVRAM "),
+		_T("GVRAM "),
+		_T("RMW   "),
+		_T("PCG   "),
+		_T("DIC   "),
+	};
+	if((buffer == nullptr) || (buffer_len == 0)) {
+		return false;
+	}
+	buffer[0] = _T('\0');
+
+	my_stprintf_s(
+		buffer,
+		buffer_len,
+		_T("MAPREG bank=%d mode=%02X vram_sel=%02X vram_page=%02X dic_bank=%02X kanji_bank=%02X 4mhz=%d\n")
+		_T("PAGE  CPU-ADDR  REG TYPE    WAIT TARGET\n"),
+		bank,
+		mode,
+		vram_sel,
+		vram_page,
+		dic_bank,
+		kanji_bank,
+		is_4mhz ? 1 : 0);
+
+	for(int i = 0; i < 8; i++) {
+		const _TCHAR *target_name = _T("N.C.");
+		uint8_t reg = page[i];
+		if(reg <= 0x1f) {
+			target_name = _T("RAM");
+		} else if(0x20 <= reg && reg <= 0x2f) {
+			target_name = _T("VRAM");
+		} else if(0x30 <= reg && reg <= 0x33) {
+			target_name = _T("RMW");
+		} else if(0x34 <= reg && reg <= 0x37) {
+			target_name = _T("IPL");
+		} else if(reg == 0x38) {
+			target_name = _T("TVRAM");
+		} else if(reg == 0x39) {
+			target_name = _T("PCG/KANJI");
+		} else if(reg == 0x3a) {
+			target_name = _T("DIC");
+		} else if(0x3c <= reg && reg <= 0x3f) {
+			target_name = _T("PHONE");
+		}
+		my_tcscat_s(
+			buffer,
+			buffer_len,
+			create_string(
+				_T("%d    %04X-%04X  %02X  %s  %d    %s\n"),
+				i,
+				i * 0x2000,
+				i * 0x2000 + 0x1fff,
+				reg,
+				page_type_name[(page_type[i << 1] >= 0 && page_type[i << 1] <= 5) ? page_type[i << 1] : 0],
+				page_wait[i << 1],
+				target_name));
+	}
+	return true;
+}
+
+bool MEMORY::get_debug_regs_description(_TCHAR *buffer, size_t buffer_len)
+{
+	if((buffer == nullptr) || (buffer_len == 0)) {
+		return false;
+	}
+	my_stprintf_s(
+		buffer,
+		buffer_len,
+		_T("MZ-2500 Memory Bus debug space:\n")
+		_T("  %05X-%05X : Main RAM 256KB\n")
+		_T("  %05X-%05X : VRAM 128KB\n")
+		_T("  %05X-%05X : Text VRAM 6KB (rest returns FF)\n")
+		_T("  %05X-%05X : PCG 8KB\n")
+		_T("  %05X-%05X : IPL ROM 32KB\n")
+		_T("  %05X-%05X : Dictionary ROM 256KB\n")
+		_T("  %05X-%05X : Kanji ROM 256KB\n")
+		_T("  %05X-%05X : Phone ROM 32KB\n")
+		_T("Use !DEVICE to select the MZ-2500 memory bus, then:\n")
+		_T("  R   : current map/page state\n")
+		_T("  RH  : this layout help\n")
+		_T("  D x y : dump raw backing memory in this unified space\n"),
+		DEBUG_ADDR_RAM,   DEBUG_ADDR_VRAM - 1,
+		DEBUG_ADDR_VRAM,  DEBUG_ADDR_TVRAM - 1,
+		DEBUG_ADDR_TVRAM, DEBUG_ADDR_PCG - 1,
+		DEBUG_ADDR_PCG,   DEBUG_ADDR_IPL - 1,
+		DEBUG_ADDR_IPL,   DEBUG_ADDR_DIC - 1,
+		DEBUG_ADDR_DIC,   DEBUG_ADDR_KANJI - 1,
+		DEBUG_ADDR_KANJI, DEBUG_ADDR_PHONE - 1,
+		DEBUG_ADDR_PHONE, DEBUG_ADDR_END - 1);
 	return true;
 }
 

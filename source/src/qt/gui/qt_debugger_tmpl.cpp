@@ -20,6 +20,8 @@
 #include <QPushButton>
 #include <QFontDialog>
 #include <QFont>
+#include <QFontInfo>
+#include <QFontDatabase>
 #include <QApplication>
 #include <QResizeEvent>
 #include <QSize>
@@ -147,11 +149,15 @@ void CSP_Debugger_Tmpl::run(void)
 
 void CSP_Debugger_Tmpl::set_font(const QFont &font)
 {
-	text_command->setFont(font);
-	text->setFont(font);
-	if(!(font.toString().isEmpty())) {
+	QFont fixed_font(font);
+	fixed_font.setFixedPitch(true);
+	fixed_font.setKerning(false);
+	fixed_font.setStyleHint(QFont::TypeWriter);
+	text_command->setFont(fixed_font);
+	text->setFont(fixed_font);
+	if(!(fixed_font.toString().isEmpty())) {
 		memset(p_cfg->debugwindow_font, 0x00, sizeof(p_cfg->debugwindow_font));
-		snprintf(p_cfg->debugwindow_font, sizeof(p_cfg->debugwindow_font) - 1, "%s", font.toString().toLocal8Bit().constData());
+		snprintf(p_cfg->debugwindow_font, sizeof(p_cfg->debugwindow_font) - 1, "%s", fixed_font.toString().toLocal8Bit().constData());
 	}
 }
 
@@ -232,7 +238,7 @@ CSP_Debugger_Tmpl::CSP_Debugger_Tmpl(EMU_TEMPLATE* p_emu, QWidget *parent)
 	
 	text = new QTextEdit(this);
 	text->setReadOnly(true);
-	text->setLineWrapMode(QTextEdit::WidgetWidth);
+	text->setLineWrapMode(QTextEdit::NoWrap);
 	text->setAcceptRichText(true);
 
 	text_command = new QLineEditPlus(QString::fromUtf8(""), this);
@@ -246,8 +252,16 @@ CSP_Debugger_Tmpl::CSP_Debugger_Tmpl(EMU_TEMPLATE* p_emu, QWidget *parent)
 	if(strlen(p_cfg->debugwindow_font) > 0) {
 		QFont font;
 		font.fromString(QString::fromLocal8Bit(p_cfg->debugwindow_font));
-		text->setFont(font);
-		text_command->setFont(font);
+		set_font(font);
+	} else {
+		QFont font(QString::fromUtf8("Noto Mono"));
+		if(!QFontInfo(font).exactMatch()) {
+			font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+		}
+		font.setFixedPitch(true);
+		font.setKerning(false);
+		font.setStyleHint(QFont::TypeWriter);
+		set_font(font);
 	}
 	complete_list.clear();
 
