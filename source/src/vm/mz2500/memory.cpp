@@ -48,21 +48,35 @@ void MEMORY::initialize()
 
 	// load rom images
 	FILEIO* fio = new FILEIO();
-	if(fio->Fopen(create_local_path(_T("IPL.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(ipl, sizeof(ipl), 1);
-		fio->Fclose();
+	auto load_rom = [&](const _TCHAR* file_name, uint8_t* dest, size_t size) {
+		const _TCHAR* cwd_path = create_absolute_path(_T("%s"), file_name);
+		if(fio->Fopen(cwd_path, FILEIO_READ_BINARY)) {
+			fio->Fread(dest, size, 1);
+			fio->Fclose();
+			out_debug_log(_T("ROM: loaded %s from current directory: %s\n"), file_name, cwd_path);
+			return true;
+		}
+		const _TCHAR* local_path = create_local_path(_T("%s"), file_name);
+		if(fio->Fopen(local_path, FILEIO_READ_BINARY)) {
+			fio->Fread(dest, size, 1);
+			fio->Fclose();
+			out_debug_log(_T("ROM: loaded %s from application directory: %s\n"), file_name, local_path);
+			return true;
+		}
+		out_debug_log(_T("ROM: missing %s (tried %s and %s)\n"), file_name, cwd_path, local_path);
+		return false;
+	};
+	if(!load_rom(_T("IPL.ROM"), ipl, sizeof(ipl))) {
+		out_debug_log(_T("ROM: IPL.ROM was not found, using 0xff-filled fallback.\n"));
 	}
-	if(fio->Fopen(create_local_path(_T("KANJI.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(kanji, sizeof(kanji), 1);
-		fio->Fclose();
+	if(!load_rom(_T("KANJI.ROM"), kanji, sizeof(kanji))) {
+		out_debug_log(_T("ROM: KANJI.ROM was not found, using 0xff-filled fallback.\n"));
 	}
-	if(fio->Fopen(create_local_path(_T("DICT.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(dic, sizeof(dic), 1);
-		fio->Fclose();
+	if(!load_rom(_T("DICT.ROM"), dic, sizeof(dic))) {
+		out_debug_log(_T("ROM: DICT.ROM was not found, using 0xff-filled fallback.\n"));
 	}
-	if(fio->Fopen(create_local_path(_T("PHONE.ROM")), FILEIO_READ_BINARY)) {
-		fio->Fread(phone, sizeof(phone), 1);
-		fio->Fclose();
+	if(!load_rom(_T("PHONE.ROM"), phone, sizeof(phone))) {
+		out_debug_log(_T("ROM: PHONE.ROM is optional and was not found.\n"));
 	}
 	delete fio;
 

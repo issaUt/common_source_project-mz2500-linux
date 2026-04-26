@@ -44,6 +44,7 @@
 #if defined(_USE_QT)
 	std::string DLL_PREFIX cpp_homedir;
 	std::string DLL_PREFIX cpp_confdir;
+	std::string DLL_PREFIX cpp_appdir;
 	std::string DLL_PREFIX my_procname;
 	std::string DLL_PREFIX sRssDir;
 #endif
@@ -1296,11 +1297,20 @@ const _TCHAR *DLL_PREFIX get_application_path()
 #else
 		std::string delim = "/";
 #endif
-		std::string csppath = cpp_homedir + "CommonSourceCodeProject" + delim ;
-		_my_mkdir(csppath);
-
-		std::string cpath = csppath + my_procname + delim;
-		_my_mkdir(cpath);
+		std::string cpath;
+		if(!cpp_appdir.empty()) {
+			cpath = cpp_appdir;
+			size_t _len = cpath.length();
+			if((_len <= 0) || (cpath.back() != delim[0])) {
+				cpath.append(delim);
+			}
+			_my_mkdir(cpath);
+		} else {
+			std::string csppath = cpp_homedir + "CommonSourceCodeProject" + delim ;
+			_my_mkdir(csppath);
+			cpath = csppath + my_procname + delim;
+			_my_mkdir(cpath);
+		}
 		strncpy(app_path, cpath.c_str(), _MAX_PATH - 1);
 #endif
 		initialized = true;

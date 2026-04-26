@@ -25,6 +25,7 @@
 #include <QCommandLineParser>
 #include <QSettings>
 #include <QActionGroup>
+#include <QTimer>
 
 #include "common.h"
 #include "fileio.h"
@@ -58,8 +59,10 @@
 
 
 #include "menu_flags_ext.h"
+#if defined(USE_MOVIE_SAVER)
 #include "dialog_movie.h"
 #include "../avio/movie_saver.h"
+#endif
 // emulation core
 #include "../../vm/vm_limits.h"
 #include "../../vm/fmgen/fmgen.h"
@@ -78,6 +81,8 @@ extern DLL_PREFIX_I std::string cpp_homedir;
 extern DLL_PREFIX_I std::string cpp_confdir;
 extern DLL_PREFIX_I std::string my_procname;
 extern DLL_PREFIX_I std::string sRssDir;
+extern int window_pos_x;
+extern int window_pos_y;
 
 void Ui_MainWindow::do_set_mouse_enable(bool flag)
 {
@@ -126,9 +131,11 @@ void Ui_MainWindow::do_toggle_mouse(void)
 
 void Ui_MainWindow::rise_movie_dialog(void)
 {
+#if defined(USE_MOVIE_SAVER)
 	CSP_DialogMovie *dlg = new CSP_DialogMovie(hSaveMovieThread, using_flags);
 	dlg->setWindowTitle(QApplication::translate("CSP_DialogMovie", "Configure movie encodings", 0));
 	dlg->show();
+#endif
 }
 
 bool Ui_MainWindow::LaunchEmuThread(std::shared_ptr<EmuThreadClassBase> m)
@@ -491,6 +498,7 @@ bool Ui_MainWindow::LaunchEmuThread(std::shared_ptr<EmuThreadClassBase> m)
 
 	csp_logger->debug_log(CSP_LOG_INFO, CSP_LOG_TYPE_GENERAL, "DrawThread : Launch done.");
 
+#if defined(USE_MOVIE_SAVER)
 	hSaveMovieThread = new MOVIE_SAVER(640, 400,  30, (OSD*)p_osd, &config);
 
 	// SAVING MOVIES
@@ -526,6 +534,12 @@ bool Ui_MainWindow::LaunchEmuThread(std::shared_ptr<EmuThreadClassBase> m)
 	csp_logger->debug_log(CSP_LOG_INFO, CSP_LOG_TYPE_GENERAL, "MovieThread : Launch done.");
 
 	connect(action_SetupMovie, SIGNAL(triggered()), this, SLOT(rise_movie_dialog()));
+#else
+	hSaveMovieThread = nullptr;
+	actionStart_Record_Movie->setEnabled(false);
+	actionStop_Record_Movie->setEnabled(false);
+	action_SetupMovie->setEnabled(false);
+#endif
 	connect(hRunEmu.get(), SIGNAL(sig_change_access_lamp(int, int, QString)), driveData, SLOT(updateLabel(int, int, QString)), Qt::QueuedConnection);
 	connect(hRunEmu.get(), SIGNAL(sig_set_access_lamp(int, bool)), graphicsView, SLOT(do_display_osd_leds(int, bool)), Qt::QueuedConnection);
 	connect(hRunEmu.get(), SIGNAL(sig_change_virtual_media(int, int, QString)), driveData, SLOT(updateMediaFileName(int, int, QString)), Qt::QueuedConnection);
@@ -683,6 +697,7 @@ void Ui_MainWindow::OnMainWindowClosed(void)
 	emit sig_quit_widgets();
 	//emit sig_quit_housekeeper();
 
+#if defined(USE_MOVIE_SAVER)
 	if(hSaveMovieThread != nullptr) {
 		// When recording movie, stopping will spend a lot of seconds.
 		if(!(hSaveMovieThread->wait(60 * 1000))) { // 60 Sec
@@ -692,6 +707,9 @@ void Ui_MainWindow::OnMainWindowClosed(void)
 		delete hSaveMovieThread;
 		hSaveMovieThread = NULL;
 	}
+#else
+	hSaveMovieThread = NULL;
+#endif
 
 	int waitcount = 0;
 	if(hRunEmu.get() != nullptr) {
@@ -1182,6 +1200,20 @@ void ProcessCmdLine(QCommandLineParser *cmdparser, const QStringList vmedialist,
 			}
 		}
 	}
+	if(cmdparser->isSet("state")) {
+		QString tmps = cmdparser->value("state").trimmed();
+		if(!(tmps.isEmpty())) {
+			dstlist.insert(QString::fromUtf8("vState"), tmps);
+		}
+	} else if(cmdparser->isSet("state-slot")) {
+		bool ok = false;
+		int slot = cmdparser->value("state-slot").trimmed().toInt(&ok);
+		if(ok && (slot >= 0)) {
+			_TCHAR state_path[_MAX_PATH] = {0};
+			my_stprintf_s(state_path, _MAX_PATH - 1, _T("%s.sta%d"), _T(CONFIG_NAME), slot);
+			dstlist.insert(QString::fromUtf8("vState"), QString::fromLocal8Bit(create_local_path(state_path)));
+		}
+	}
 }
 
 void OpeningMessage(std::string archstr, const QMap<QString, QString> virtualMediaList)
@@ -1300,11 +1332,9 @@ int MainLoop(int argc, char *argv[])
 #endif
 
 	QApplication *GuiMain = NULL;
-	GuiMain = new QApplication(argc, argv);
-	GuiMain->setObjectName(QString::fromUtf8("Gui_Main"));
 	QSettings settings;
-	
-    QCommandLineParser cmdparser;
+
+	QCommandLineParser cmdparser;
 	QStringList vmedia_aliases;
 
 	vmedia_aliases.clear();
@@ -1332,6 +1362,9 @@ int MainLoop(int argc, char *argv[])
 	QMap<QString, QString> virtualMediaList;
 	virtualMediaList.clear();
 	ProcessCmdLine(&cmdparser, (const QStringList)vmedia_aliases, virtualMediaList);
+
+	GuiMain = new QApplication(argc, argv);
+	GuiMain->setObjectName(QString::fromUtf8("Gui_Main"));
 	if(using_flags.get() != nullptr) {
 		using_flags->set_home_directory(cpp_homedir);
 		using_flags->set_config_directory(cpp_confdir);
@@ -1388,7 +1421,8 @@ int MainLoop(int argc, char *argv[])
 	rMainWindow = new META_MainWindow(using_flags, logger_ptr);
 	rMainWindow->connect(rMainWindow, SIGNAL(sig_quit_all(void)), rMainWindow, SLOT(deleteLater(void)));
 	rMainWindow->setCoreApplication(GuiMain);
-	rMainWindow->getWindow()->show();
+	QWidget *main_window = rMainWindow->getWindow();
+	main_window->show();
 	rMainWindow->retranselateUi_Depended_OSD();
 	
 //	QMetaObject::connectSlotsByName(rMainWindow);
@@ -1430,6 +1464,17 @@ int MainLoop(int argc, char *argv[])
 //	pgl->setFixedSize(pgl->width(), pgl->height());
 	// main loop
 	rMainWindow->LaunchEmuThread(hRunEmu_Real);
+	if((window_pos_x >= 0) && (window_pos_y >= 0)) {
+		const int initial_x = window_pos_x;
+		const int initial_y = window_pos_y;
+		auto apply_window_pos = [main_window, initial_x, initial_y]() {
+			main_window->setGeometry(initial_x, initial_y, main_window->width(), main_window->height());
+		};
+		apply_window_pos();
+		QTimer::singleShot(0, main_window, apply_window_pos);
+		QTimer::singleShot(250, main_window, apply_window_pos);
+		QTimer::singleShot(1000, main_window, apply_window_pos);
+	}
 
 #if defined(USE_JOYSTICK)
 	if(hRunEmu_Real.get() != nullptr) {
@@ -1552,9 +1597,11 @@ QString Ui_MainWindow::get_system_version()
 	osdver.clear();
 	libcommon_ver.clear();
 
+#if defined(USE_MOVIE_SAVER)
 	if(hSaveMovieThread != NULL) {
 		aviover = hSaveMovieThread->get_avio_version();
 	}
+#endif
 
 	if(p_emu != nullptr) {
 		if(p_emu->get_osd() != NULL) {

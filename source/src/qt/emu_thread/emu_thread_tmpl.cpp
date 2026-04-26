@@ -534,24 +534,30 @@ int EmuThreadClassBase::parse_drive(QString key)
 
 void EmuThreadClassBase::parse_file(QString val, QString& filename)
 {
+	val.remove(QChar(0x000d));
+	val.remove(QChar(0x000a));
+	val = val.trimmed();
 	ssize_t check_at = val.lastIndexOf(QString::fromUtf8("@"));
 	if((check_at < 0) || (check_at >= (val.size() - 1))) { // Not Found
 		filename = val;
 	} else {
 		QString tmps = val.right(check_at + 1);
-		filename = tmps;
+		filename = tmps.trimmed();
 	}
 }
 
 void EmuThreadClassBase::parse_file_slot(QString val, QString& filename, bool& protect_changed, bool& is_protected, int& slot )
 {
+	val.remove(QChar(0x000d));
+	val.remove(QChar(0x000a));
+	val = val.trimmed();
 	ssize_t check_at = val.lastIndexOf(QString::fromUtf8("@"));
 	protect_changed = false;
 	if((check_at < 0) || (check_at >= (val.size() - 1))) { // Not Found
 		filename = val;
 	} else {
 		QString tmps = val.right(check_at + 1);
-		filename = tmps;
+		filename = tmps.trimmed();
 		ssize_t _at2 = val.indexOf(QString::fromUtf8("@"));
 		while((_at2 < val.size()) && (_at2 >= 0))  {
 			ssize_t _at3 = val.indexOf(QString::fromUtf8("@"), _at2 + 1);
@@ -585,12 +591,28 @@ int EmuThreadClassBase::parse_command_queue(QMap<QString, QString> __list)
 	for(auto _s = __list.constBegin(); _s != __list.constEnd(); ++_s) {
 		QString _key = _s.key();
 		QString _val = _s.value();
+		if(_key.contains("vState", Qt::CaseInsensitive)) {
+			QString _file = QString::fromUtf8("");
+			parse_file(_val, _file);
+			if(!_file.isEmpty()) {
+				lStateFile = _file;
+				loadState();
+				_ret++;
+			}
+		}
+	}
+	for(auto _s = __list.constBegin(); _s != __list.constEnd(); ++_s) {
+		QString _key = _s.key();
+		QString _val = _s.value();
 		//printf("%s %s\n", _key.toLocal8Bit().constData(), _val.toLocal8Bit().constData());
 		int slot = 0;
 		QString _file = QString::fromUtf8("");
 		bool is_protected = false;
 		bool protect_changed = false;
 		if(!(_key.isEmpty())) {
+			if(_key.contains("vState", Qt::CaseInsensitive)) {
+				continue;
+			}
 			int drv = parse_drive(_key);
 			if(_key.contains("vBinary", Qt::CaseInsensitive)) {
 				parse_file(_val, _file);

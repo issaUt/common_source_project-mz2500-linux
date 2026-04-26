@@ -22,6 +22,7 @@
 #include "dock_disks.h"
 #include "menu_metaclass.h"
 
+
 void EmuThreadClassBase::do_write_protect_floppy_disk(int drv, bool flag)
 {
 	if(drv < 0) return;
@@ -74,7 +75,8 @@ void EmuThreadClassBase::do_open_floppy_disk(int drv, QString path, int bank)
 	if(p.get() == nullptr) return;
 	if(!((p->get_max_drive() > drv) && (p->is_use_fd()))) return;
 
-	const _TCHAR *file_path = (const _TCHAR *)(path.toLocal8Bit().constData());
+	QByteArray path_bytes = path.toLocal8Bit();
+	const _TCHAR *file_path = (const _TCHAR *)(path_bytes.constData());
 	if(!(FILEIO::IsFileExisting(file_path))) return; // File not found.
 	_TCHAR tmppath[_MAX_PATH] = {0}; // For Security.
 	my_tcscpy_s(tmppath, _MAX_PATH, file_path);
@@ -86,11 +88,7 @@ void EmuThreadClassBase::do_open_floppy_disk(int drv, QString path, int bank)
 		if(check_file_extension(file_path, ".d88") || check_file_extension(file_path, ".d8e") || 
 		   check_file_extension(file_path, ".d77") || check_file_extension(file_path, ".1dd")) {
 			if((bank + 1) < get_d88_file_bank_num(drv)) {
-				//if(!(p_emu->is_floppy_disk_inserted(drv + 1))) {
 				do_open_floppy_disk(drv + 1, path, (bank + 1) | EMU_MEDIA_TYPE::MULTIPLE_SLOT_DETECT_MASK);
-				//}
-				//p_emu->close_floppy_disk(drv + 1);
-				//p_emu->open_floppy_disk(drv + 1, file_path, (bank + 1) | EMU_MEDIA_TYPE::MULTIPLE_SLOT_DETECT_MASK);
 			}
 		}
 	}

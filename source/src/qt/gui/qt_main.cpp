@@ -31,6 +31,7 @@
 extern config_t config;
 extern std::string cpp_homedir;
 extern std::string cpp_confdir;
+extern std::string cpp_appdir;
 extern std::string sRssDir;
 
 void get_short_filename(_TCHAR *dst, _TCHAR *file, int maxlen)
@@ -59,6 +60,8 @@ QProcessEnvironment _envvars;
 
 bool _b_dump_envvar;
 std::string config_fullpath;
+int window_pos_x = -1;
+int window_pos_y = -1;
 
 DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
 {
@@ -79,6 +82,11 @@ DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
     _cl.append("res");
     _cl.append("resdir");
     _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Custom resource directory (ROMs, WAVs, etc)."), QCoreApplication::translate("main", "DIRECTORY PATH")));
+    _cl.clear();
+
+    _cl.append("a");
+    _cl.append("appdir");
+    _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Custom application data directory (states, local files, etc)."), QCoreApplication::translate("main", "DIRECTORY PATH")));
     _cl.clear();
 
     _cl.append("on");
@@ -139,6 +147,19 @@ DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
     _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Dump environment variables.")));
     _cl.clear();
 
+    _cl.append("window-pos");
+    _cl.append("window-position");
+    _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Set initial window position as X,Y."), QCoreApplication::translate("main", "X,Y")));
+    _cl.clear();
+
+    _cl.append("state");
+    _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Load save state from file at startup."), QCoreApplication::translate("main", "PATH")));
+    _cl.clear();
+
+    _cl.append("state-slot");
+    _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Load save state slot at startup."), QCoreApplication::translate("main", "SLOT")));
+    _cl.clear();
+
 	if(parser != nullptr) {
 		parser->addOptions(_ret);
 	}
@@ -186,6 +207,11 @@ DLL_PREFIX void ProcessCmdLine_Sub(QCommandLineParser *cmdparser)
 			sRssDir.append(delim);
 		}
 	}
+	if(cmdparser->isSet("appdir")) {
+		char tmps[_MAX_PATH] = {0};
+		strncpy(tmps, cmdparser->value("appdir").trimmed().toLocal8Bit().constData(), _MAX_PATH - 1);
+		cpp_appdir = tmps;
+	}
 
 	if(cmdparser->isSet("envvar")) {
 		QStringList nList = cmdparser->values("envvar");
@@ -229,5 +255,21 @@ DLL_PREFIX void ProcessCmdLine_Sub(QCommandLineParser *cmdparser)
 	_b_dump_envvar = false;
 	if(cmdparser->isSet("dump-envvar")) {
 		_b_dump_envvar = true;
+	}
+	window_pos_x = -1;
+	window_pos_y = -1;
+	if(cmdparser->isSet("window-pos")) {
+		QString pos = cmdparser->value("window-pos").trimmed();
+		QStringList parts = pos.split(QString::fromUtf8(","));
+		if(parts.size() == 2) {
+			bool ok_x = false;
+			bool ok_y = false;
+			int x = parts.at(0).trimmed().toInt(&ok_x);
+			int y = parts.at(1).trimmed().toInt(&ok_y);
+			if(ok_x && ok_y) {
+				window_pos_x = x;
+				window_pos_y = y;
+			}
+		}
 	}
 }

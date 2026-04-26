@@ -135,8 +135,8 @@ else()
 endif()
 
 set(USE_SDL2 ON CACHE BOOL "Build with libSDL2. DIsable is building with libSDL1.")
-set(USE_MOVIE_SAVER ON CACHE BOOL "Save screen/audio as MP4 MOVIE. Needs libav .")
-set(USE_MOVIE_LOADER ON CACHE BOOL "Load movie from screen for some VMs. Needs libav .")
+set(USE_MOVIE_SAVER OFF CACHE BOOL "Save screen/audio as MP4 MOVIE. Needs libav .")
+set(USE_MOVIE_LOADER OFF CACHE BOOL "Load movie from screen for some VMs. Needs libav .")
 set(USE_GCC_OLD_ABI OFF CACHE BOOL "Build with older GCC ABIs if you can.")
 set(USE_LTO ON CACHE BOOL "Use link-time-optimization to build.")
 #set(USE_OPENMP OFF CACHE BOOL "Build using OpenMP")
@@ -234,6 +234,11 @@ else()
 	set(USE_MOVIE_SAVER OFF)
 	set(USE_MOVIE_LOADER OFF)
 	set(LIBAV_LIBRARIES "")
+endif()
+
+set(USE_QT_AVIO OFF)
+if(LIBAV_FOUND AND (USE_MOVIE_SAVER OR USE_MOVIE_LOADER))
+	set(USE_QT_AVIO ON)
 endif()
 
 if(USE_SDL2)
@@ -423,7 +428,9 @@ endfunction(set_std)
 
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/qt" osd)
-add_subdirectory("${PROJECT_SOURCE_DIR}/src/qt/avio" qt/avio)
+if(USE_QT_AVIO)
+	add_subdirectory("${PROJECT_SOURCE_DIR}/src/qt/avio" qt/avio)
+endif()
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/qt/gui" qt/gui)
 add_subdirectory("${PROJECT_SOURCE_DIR}/src/qt/emuutils" emu_utils)
 
@@ -568,9 +575,11 @@ function(ADD_VM VM_NAME EXE_NAME VMDEF)
 			CSPfmgen
 			CSPgui
 			CSPemu_utils
-			CSPavio
 			${BUNDLE_LIBS}
 		)
+		if(USE_QT_AVIO)
+			list(APPEND BUNDLE_LIBS CSPavio)
+		endif()
 	else()
 		set(BUNDLE_LIBS
 			${BUNDLE_LIBS}
@@ -578,8 +587,10 @@ function(ADD_VM VM_NAME EXE_NAME VMDEF)
 #			CSPfmgen
 			CSPgui
 			CSPemu_utils
-			CSPavio
 		)
+		if(USE_QT_AVIO)
+			list(APPEND BUNDLE_LIBS CSPavio)
+		endif()
 	endif()
 
 	# Subdirectories
@@ -606,10 +617,12 @@ function(ADD_VM VM_NAME EXE_NAME VMDEF)
 		common_${EXE_NAME}
 		CSPemu_utils
 		CSPgui
-		CSPavio
 		qt_debugger_${EXE_NAME}
 		qt_${EXE_NAME}
 	)
+	if(USE_QT_AVIO)
+		add_dependencies(${EXE_NAME} CSPavio)
+	endif()
 	target_compile_definitions(${EXE_NAME}
 		PRIVATE  ${VMDEF}
 	)

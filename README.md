@@ -1,180 +1,164 @@
-<H2>** Qt porting for Common Source Code Project **</H2>
-<div align="right">
-<H3>Feb 10, 2018<BR>
-K.Ohta <whatisthis.sowhat _at_ gmail.com></H3>
-</div>
+# common_source_project-mz2500-linux
 
-## *If you can't read Japanese, [english writing is here](/README.en.md/).*
-## *ビルドやインストールをされたい方は、[こちらを](/INSTALL.md/)。
+Common Source Code Project の Qt/Linux 系を土台にした、SHARP MZ-2500 向け Linux / WSL 実用化ブランチです。
 
-概要
-======
+## 概要
 
-   このパッケージは、Common Source Code Project (以下、CSP)をQt5に移植したものです。
-   
-   バイナリはGNU/Linux(64bit)用とMinGW (32bit Windows)用を用意しています。
-   
-## ソースコード
-   
-<https://github.com/Artanejp/common_source_project-fm7/> 以下
+このリポジトリは、MZ-2500 を Linux / WSL 上で実用しやすくすることを目的とした派生版です。
 
-## 追加情報
-   
-各機種バイナリーは、osdn.net　もしくはミラーサイトより入手可能です。
-    
-<https://osdn.net/projects/csp-qt/>  
-   
-<https://osdn.net/projects/csp-qt/releases/>
+ベースになっているのは次の 2 つです。
 
-をチェックしてください。
+- 武田俊也さんによる Common Source Code Project
+- Artanejp さん / K.Ohta さんによる Qt/Linux 移植版
 
-## 【おねがい】
+その上で、主に次の改善を加えています。
 
-doc/以下の文書で日本語しかなかったものを英語に翻訳していますが、機械翻訳を使ってるのであやしいです。英語の上手い方、校正などお願いします m(_ _)m
+- WSL で使いやすい起動スクリプト
+- 実行時ディレクトリの整理
+- ステート起動、メディア自動マウント補助
+- MZ-2500 向けデバッガ拡張
+- Linux / WSLg 上での描画・音声の実用改善
 
-LICENSE
-======
+## 現在の主眼
 
-[GPL Version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.ja.html)
+このリポジトリでは、特に次のような MZ-2500 開発用途を重視しています。
 
-[GPL Version 2 和訳](http://www.opensource.jp/gpl/gpl.ja.html)
+- クロス開発環境からの起動
+- ディスクイメージを使った確認
+- ステートを使った高速な開発サイクル
+- MZ-2500 のメモリ / デバッガ調査
 
-背景
-====
+## ビルド
 
-CSPは、非常に優れた構造のエミュレータです（しかし、些か重くてコンパイラがいい最適化をしないと重めですが）。
+現在確認できている MZ-2500 向けビルド手順は次の通りです。
 
-しかし、このコードはM$ Visual C++依存の部分が非常に多いです。
+```bash
+git clone <this-repository-url>
+cd common_source_project-mz2500-linux
+cmake -S source -B build-mz2500
+cmake --build build-mz2500 --target emumz2500 -j1
+```
 
-そこで、GNU/Linuxでこれを動かすためにQtに色々と移植していきましょう。と言う感じで作業をはじめました。
+補足:
 
-最低限必要なもの(Qt版)
-====
+- CMake の configure 時には他機種の定義も広く走ります
+- 実際のビルド対象は `--target emumz2500` を指定してください
+- Linux / WSL 版では、現時点で MOVIE 関連は既定で無効化しています
 
-   * Qt5 ツールキット。Qt 5.5以降を推奨します。
-   
-   * OpenGL, 多分、最低OpenGL 2.1は必要です。（注：ひょっとしたら、OpenGLES2以降ならば動くように変えるかも知れない）
-   
-   * gcc / g++ (5.0以降？)もしくは llvm clang / clang++ (3.5以降?)コンパイラツールチェーン。MS Visual StudioのC++でも大体はビルドできると思いますが、未確認。
-      
-   * SDL2 (SDL 1.xではないので注意)
-   
-   * CMake 2.8以降。
-   
-   * ffmpegから、libavとlibswが必要です。 http://ffmpeg.org/ より。
-   
-   * ffmpegは、それぞれのランタイムに必要なものをバンドルしてありますので、動かない時はインストールしてみてください。
-      
-   * GNU/Linuxビルドでは、Qt5.5(Ubuntu 16.04LTS向け)もしくはQt5.9(Debian GNU/Linux sid向け)でビルドしてあります。
+## 実行時ディレクトリ
 
-   * Windows もしくは GNU/Linux のcross tool chain (要Wine)で、MinGW (gcc6) と Qt 5.7 でのビルドができることを確認しました。
-     
-## TIPS:
-   
- * Windows等で動かした時に、画面の書き替えが表示されない場合は、環境変数 QT_OPENGL を software にしてみてください。（例えば、WindowsをVirtualBoxのゲストで使ってる場合など）
-       
- * Windows版バイナリには、ソフトウェアレンダリングのopengl32.dllが添付されてますが、最近のパソコンの専用GPUドライバなら、もっと程度のいいOpenGLが入ってるはずです。添付版opengl32.dllを適当な名前に変更して動くかどうか試してみて下さい。
-     
-ビルドの方法
-==
+MZ-2500 用の実行時データは、既定で次のディレクトリを使用します。
 
-ソースコードを解凍するか、git clone / pull した後で:
-   
-    $ cd {srctop}/source/build-cmake/{Machine name}/
-    $ mkdir build
-    $ cd build
+```text
+runtime/mz2500
+```
 
-To configure:
-   
-    $ cmake ..
-   
-or
-   
-    $ ccmake ..
+このディレクトリには、主に次のようなファイルを置きます。
 
-To build:
-   
-    $ make
+- `IPL.ROM`
+- `KANJI.ROM`
+- `DICT.ROM`
+- `PHONE.ROM`（任意）
+- `mz2500.sta0` から `mz2500.sta9`
 
-To install:
-   
-    $ sudo make install
+ROM 探索順は次の通りです。
 
-## Qt固有の話
+1. カレントディレクトリ
+2. `--appdir` で指定したディレクトリ
+3. 既定では `runtime/mz2500`
 
-   * 設定ファイル(scancode.cfg と foo.ini)は、"~/.config/CommonSourceCodeProject/emufoo/" (Windowsの場合は".\CommonSourceCodeProject\emudfoo\" ) におかれます（移動しました）。
+## 起動
 
-   * BIOSや効果音WAVやセーブステートは、、"~/CommonSourceCodeProject/emufoo/" (Windowsの場合は".\CommonSourceCodeProject\emudfoo\" ) におかれます（移動しました）。
-   
-   * 全ての記録物(スクリーンショットや動画や録音WAV）は、*当面の間* "~/CommonSourceCodeProject/emufoo/" (Windowsの場合は".\CommonSourceCodeProject\emudfoo\" ) におかれます。
+起動には `run_mz2500.sh` を使います。
 
-   * ToolTipsを付けました。(2017-01-24)
-      
-   * 日本語に翻訳しました。(2017-01-24)
-   
-   * R@Mを $HOME/CommonSourceCodeProject/emu{Machine Name}/　に配置してください。(Windowsの場合は今の所 .\CommonSourceCodeProject\emu{Machine Name}\)。なお、このディレクトリは最初起動した後で作成されます。
-      
-   * キーコード変換テーブルファイルが、$HOME/.config/CommonSourceCodeProject/emu{Machine Name}/scancode.cfg に書き込まれます。
-   
-     ** 書式は、カンマで区切られた16進データです(10進ではないので注意) .
-     
-     ** 1カラム目はM$ ヴァーチャルキーコード。
-     
-     ** 2カラム目はQtネィティブのスキャンキーコードです。
-     
-   * UI部分の共通コンポーネント (src/qt/gui) を共有ライブラリlibCSPgui.soにまとめました。
-   
-   * インストール用のBASHスクリプトを用意しました。src/tool/installer_unix.shです。
-   
-   * ROMと同じところに、特定のWAVファイル(VMによって異なる)を入れると、FDDのシーク音やテープのボタン音・リレー音を鳴らすことが出来ます。
-   
-   * ローマ字カタカナ変換支援機構が一部の機種に実装されてます。
-    
-移植状況
-==
+```bash
+cd common_source_project-mz2500-linux
+./run_mz2500.sh
+```
 
-   * 現在、Debian GNU/Linux "sid"と、Ubuntu Linux 16.04LTS "Xenial"の AMD64版、後はWindowsのMinGWでしかテストしていません。
-   
-   　が、多分他のGNU/Linux OSやBSD系のOS (Mac含む) でもビルドすれば動くでしょう。
-   
-     Windows もしくは GNU/Linux(要Wineとbinfmt-support)上でのMinGWとQt community edition でのビルドが通るようになりました。
-      
-   * 今は、Qtの開発側が「Qt4おわりね」とアナウンスしたので、Qt4ではなくQt5を使っています。
-   
-      添付してあるバイナリは、Qt 5.5でビルドしました(が、Qt 5.1以降なら動くはずです)。
+FD を指定して起動する例:
 
-   * Linux用ビルドでは、GCCをリンク時最適化(LTO)モードで使っています。
-   
-   * MZ-2500のソケット機能を実装してみていますが、マトモにテストできてません(；´Д｀)
-   
-Upstream repositry:
-==
+```bash
+./run_mz2500.sh --fd0 ../../diskimages/SWORD_2500V2.d88 --fd1 ./SOSPROG.D88
+```
 
-<https://github.com/Artanejp/common_source_project-fm7>
-      
-<https://osdn.net/projects/csp-qt/scm/git/common_source_project-fm7>
+ステートから起動して FD1 を差し替える例:
 
-Project Page:
-==
+```bash
+./run_mz2500.sh --state-slot 0 --fd1 ./SOSPROG.D88
+```
 
-<https://osdn.jp/projects/csp-qt/>
+任意のステートファイルを指定する例:
 
-Upstream (Takeda Toshiyaさんのオリジナル)
-==
+```bash
+./run_mz2500.sh --state ./runtime/mz2500/mz2500.sta0 --fd1 ./SOSPROG.D88
+```
 
-<http://takeda-toshiya.my.coocan.jp/>
+## 主な環境変数
 
+`run_mz2500.sh` は次の環境変数を受け付けます。
 
-Special thanks to:
-==
+- `MZ2500_APPDIR`
+- `MZ2500_FD0`
+- `MZ2500_FD1`
+- `MZ2500_FD2`
+- `MZ2500_FD3`
+- `MZ2500_STATE`
+- `MZ2500_STATE_SLOT`
+- `MZ2500_WINDOW_POS`
 
-  Ryu Takegami : eFM-8/7/77/AV/40/EX のデバッグに協力していただいています。
+例:
 
-Have fun!
+```bash
+MZ2500_APPDIR=./runtime/mz2500 \
+MZ2500_STATE_SLOT=0 \
+MZ2500_FD1=./SOSPROG.D88 \
+./run_mz2500.sh
+```
 
---- Ohta.
- 
-&copy; 2018 Toshiya Takeda
+## 既知の注意点
 
-&copy; 2018 K.Ohta <whatisthis.sowhat _at_ gmail.com>
+- Linux / WSL 版では MOVIE 関連機能を現在無効化しています
+- WSLg + Qt Multimedia 環境では、音声まわりの警告が出ることがあります
+- ウィンドウ位置指定は、WSLg 側の制約で安定しないことがあります
+
+## デバッガ
+
+MZ-2500 向けのデバッガ拡張については、次の文書を参照してください。
+
+- `DebuggerForMZ2500.md`
+
+## 謝辞
+
+- 武田俊也さんによる Common Source Code Project
+- Artanejp さん / K.Ohta さんによる Qt/Linux 移植版
+
+このリポジトリは、上記プロジェクトへの敬意と謝意の上に成り立っています。
+
+## 参照元
+
+- オリジナル Common Source Code Project:
+  <https://takeda-toshiya.my.coocan.jp/>
+- Qt/Linux 移植版:
+  <https://github.com/Artanejp/common_source_project-fm7>
+
+## ライセンス
+
+ライセンスは、ベースとなる Common Source Code Project / Qt 移植版のライセンス条件を確認した上で、それに従う形で扱います。
+
+公開時には、少なくとも次を明示する方針です。
+
+- このリポジトリが依拠する元プロジェクトのライセンス
+- このリポジトリで追加した差分の扱い
+- 再配布時に従うべき条件
+
+## ROM イメージについて
+
+このリポジトリには、実機由来の ROM イメージは含めません。
+
+利用時には、次の点に注意してください。
+
+- 実機 ROM は各自で正当に入手・準備してください
+- このリポジトリには ROM データは含まれません
+- 起動に必要な ROM 名や配置先は本 README および関連文書を参照してください
 

@@ -156,6 +156,7 @@ _TeamCity*
 _UpgradeReport_Files/
 bld/
 build-win32/
+build-mz2500/
 build/
 core
 csx/
@@ -164,6 +165,7 @@ ipch/
 node_modules/
 packages/*
 publish/
+mz2500_runtime/
 source/*/build/*
 source/build/*
 source/*/build-qt5/*
@@ -177,3 +179,6 @@ source/src/vm/libcpu_newdev/mame0197/*
 sql/
 x64/
 ~$*
+source/build-public-mz2500*/
+runtime
+runtime/
