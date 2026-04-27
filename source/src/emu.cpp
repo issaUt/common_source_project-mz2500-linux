@@ -4027,6 +4027,7 @@ void EMU::load_state(const _TCHAR* file_path)
 			std::shared_ptr<CSP_Logger> lp = csp_logger;
 			if(lp) {
 				lp->debug_log(CSP_LOG_WARN, CSP_LOG_TYPE_VM_STATE, "%s", error_message);
+				lp->debug_log(CSP_LOG_INFO, CSP_LOG_TYPE_GENERAL, "State load failed: %s", error_message);
 			}
 #endif
 			out_message(_T("State load failed: %s"), error_message);
