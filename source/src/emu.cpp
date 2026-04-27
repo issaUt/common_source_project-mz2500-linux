@@ -4023,6 +4023,12 @@ void EMU::load_state(const _TCHAR* file_path)
 		save_state(create_local_path(_T("$temp$.sta")));
 		if(!load_state_tmp(file_path, &error_message)) {
 			out_debug_log(_T("failed to load state file: %s\n"), error_message);
+#if defined(_USE_QT) || defined(_USE_AGAR) || defined(_USE_SDL)
+			std::shared_ptr<CSP_Logger> lp = csp_logger;
+			if(lp) {
+				lp->debug_log(CSP_LOG_WARN, CSP_LOG_TYPE_VM_STATE, "%s", error_message);
+			}
+#endif
 			out_message(_T("State load failed: %s"), error_message);
 			load_state_tmp(create_local_path(_T("$temp$.sta")));
 		}
