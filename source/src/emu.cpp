@@ -43,6 +43,11 @@ static const double sound_latency_table[5] = {0.05, 0.1, 0.2, 0.3, 0.4};
 //extern void get_long_full_path_name(_TCHAR* src, _TCHAR* dst);
 #include <string>
 #include <memory>
+
+static const _TCHAR* status_message_path(const _TCHAR* file_path)
+{
+	return (file_path != nullptr) ? file_path : _T("");
+}
 #endif
 
 #if defined(_USE_QT)
@@ -2661,9 +2666,9 @@ void EMU::update_media()
 			if(strlen(floppy_disk_status[drv].path) > 0) {
 				vm->open_floppy_disk(drv, floppy_disk_status[drv].path, floppy_disk_status[drv].bank & EMU_MEDIA_TYPE::EMU_SLOT_MASK);
 #if USE_FLOPPY_DISK > 1
-				out_message(_T("FD%d: %s"), drv + BASE_FLOPPY_DISK_NUM, floppy_disk_status[drv].path);
+				out_message(_T("FD%d: %s"), drv + BASE_FLOPPY_DISK_NUM, status_message_path(floppy_disk_status[drv].path));
 #else
-				out_message(_T("FD: %s"), floppy_disk_status[drv].path);
+				out_message(_T("FD: %s"), status_message_path(floppy_disk_status[drv].path));
 #endif
 				osdcall_floppy_inserted(drv, floppy_disk_status[drv].path, floppy_disk_status[drv].bank);
 			}
@@ -2675,9 +2680,9 @@ void EMU::update_media()
 		if(quick_disk_status[drv].wait_count != 0 && --quick_disk_status[drv].wait_count == 0) {
 			vm->open_quick_disk(drv, quick_disk_status[drv].path);
 #if USE_QUICK_DISK > 1
-			out_message(_T("QD%d: %s"), drv + BASE_QUICK_DISK_NUM, quick_disk_status[drv].path);
+			out_message(_T("QD%d: %s"), drv + BASE_QUICK_DISK_NUM, status_message_path(quick_disk_status[drv].path));
 #else
-			out_message(_T("QD: %s"), quick_disk_status[drv].path);
+			out_message(_T("QD: %s"), status_message_path(quick_disk_status[drv].path));
 #endif
 			osdcall_quickdisk_inserted(drv, quick_disk_status[drv].path);
 		}
@@ -2688,9 +2693,9 @@ void EMU::update_media()
 		if(hard_disk_status[drv].wait_count != 0 && --hard_disk_status[drv].wait_count == 0) {
 			vm->open_hard_disk(drv, hard_disk_status[drv].path);
 #if USE_HARD_DISK > 1
-			out_message(_T("HD%d: %s"), drv + BASE_HARD_DISK_NUM, hard_disk_status[drv].path);
+			out_message(_T("HD%d: %s"), drv + BASE_HARD_DISK_NUM, status_message_path(hard_disk_status[drv].path));
 #else
-			out_message(_T("HD: %s"), hard_disk_status[drv].path);
+			out_message(_T("HD: %s"), status_message_path(hard_disk_status[drv].path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::HARD_DISK,
 						   drv,
@@ -2708,9 +2713,9 @@ void EMU::update_media()
 				vm->rec_tape(drv, tape_status[drv].path);
 			}
 #if USE_TAPE > 1
-			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, tape_status[drv].path);
+			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, status_message_path(tape_status[drv].path));
 #else
-			out_message(_T("CMT: %s"), tape_status[drv].path);
+			out_message(_T("CMT: %s"), status_message_path(tape_status[drv].path));
 #endif
 			// ToDo: Write protect.
 			EMU_MESSAGE_TYPE::type_t mess;
@@ -2729,9 +2734,9 @@ void EMU::update_media()
 			vm->open_compact_disc(drv, compact_disc_status[drv].path);
 			//printf(_T("update_media(): LOAD CDROM: %s\n"), compact_disc_status[drv].path);
 #if USE_COMPACT_DISC > 1
-			out_message(_T("CD%d: %s"), drv + BASE_COMPACT_DISC_NUM, compact_disc_status[drv].path);
+			out_message(_T("CD%d: %s"), drv + BASE_COMPACT_DISC_NUM, status_message_path(compact_disc_status[drv].path));
 #else
-			out_message(_T("CD: %s"), compact_disc_status[drv].path);
+			out_message(_T("CD: %s"), status_message_path(compact_disc_status[drv].path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::COMPACT_DISC,
 						   drv,
@@ -2745,9 +2750,9 @@ void EMU::update_media()
 		if(laser_disc_status[drv].wait_count != 0 && --laser_disc_status[drv].wait_count == 0) {
 			vm->open_laser_disc(drv, laser_disc_status[drv].path);
 #if USE_LASER_DISC > 1
-			out_message(_T("LD%d: %s"), drv + BASE_LASER_DISC_NUM, laser_disc_status[drv].path);
+			out_message(_T("LD%d: %s"), drv + BASE_LASER_DISC_NUM, status_message_path(laser_disc_status[drv].path));
 #else
-			out_message(_T("LD: %s"), laser_disc_status[drv].path);
+			out_message(_T("LD: %s"), status_message_path(laser_disc_status[drv].path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::LASER_DISC,
 						   drv,
@@ -2761,9 +2766,9 @@ void EMU::update_media()
 		if(bubble_casette_status[drv].wait_count != 0 && --bubble_casette_status[drv].wait_count == 0) {
 			vm->open_bubble_casette(drv, bubble_casette_status[drv].path, bubble_casette_status[drv].bank & EMU_MEDIA_TYPE::EMU_SLOT_MASK);
 #if USE_BUBBLE > 1
-			out_message(_T("Bubble%d: %s"), drv + BASE_BUBBLE_NUM, bubble_casette_status[drv].path);
+			out_message(_T("Bubble%d: %s"), drv + BASE_BUBBLE_NUM, status_message_path(bubble_casette_status[drv].path));
 #else
-			out_message(_T("Bubble: %s"), bubble_casette_status[drv].path);
+			out_message(_T("Bubble: %s"), status_message_path(bubble_casette_status[drv].path));
 #endif
 			// ToDo: Write protect.
 			osdcall_bubble_inserted(drv, bubble_casette_status[drv].path, b77_file[drv].cur_bank);
@@ -2884,7 +2889,7 @@ void EMU::open_cart(int drv, const _TCHAR* file_path)
 			vm->open_cart(drv, file_path);
 		}
 		my_tcscpy_s(cart_status[drv].path, _MAX_PATH, file_path);
-		out_message(_T("Cart%d: %s"), drv + 1, file_path);
+		out_message(_T("Cart%d: %s"), drv + 1, status_message_path(file_path));
 		osdcall_string(EMU_MEDIA_TYPE::CARTRIDGE,
 					   drv,
 					   EMU_MESSAGE_TYPE::MEDIA_MOUNTED,
@@ -3024,9 +3029,9 @@ void EMU::open_floppy_disk(int drv, const _TCHAR* file_path, int bank)
 		} else if(floppy_disk_status[drv].wait_count == 0) {
 			vm->open_floppy_disk(drv, file_path, bank & EMU_MEDIA_TYPE::EMU_SLOT_MASK);
 #if USE_FLOPPY_DISK > 1
-			out_message(_T("FD%d: %s"), drv + BASE_FLOPPY_DISK_NUM, file_path);
+			out_message(_T("FD%d: %s"), drv + BASE_FLOPPY_DISK_NUM, status_message_path(file_path));
 #else
-			out_message(_T("FD: %s"), file_path);
+			out_message(_T("FD: %s"), status_message_path(file_path));
 #endif
 			osdcall_floppy_inserted(drv, (_TCHAR *)file_path, bank);
 		}
@@ -3151,9 +3156,9 @@ void EMU::open_quick_disk(int drv, const _TCHAR* file_path)
 		} else if(quick_disk_status[drv].wait_count == 0) {
 			vm->open_quick_disk(drv, file_path);
 #if USE_QUICK_DISK > 1
-			out_message(_T("QD%d: %s"), drv + BASE_QUICK_DISK_NUM, file_path);
+			out_message(_T("QD%d: %s"), drv + BASE_QUICK_DISK_NUM, status_message_path(file_path));
 #else
-			out_message(_T("QD: %s"), file_path);
+			out_message(_T("QD: %s"), status_message_path(file_path));
 #endif
 			osdcall_quickdisk_inserted(drv, (_TCHAR*)file_path);
 		}
@@ -3321,9 +3326,9 @@ void EMU::open_hard_disk(int drv, const _TCHAR* file_path)
 		} else if(hard_disk_status[drv].wait_count == 0) {
 			vm->open_hard_disk(drv, file_path);
 #if USE_HARD_DISK > 1
-			out_message(_T("HD%d: %s"), drv + BASE_HARD_DISK_NUM, file_path);
+			out_message(_T("HD%d: %s"), drv + BASE_HARD_DISK_NUM, status_message_path(file_path));
 #else
-			out_message(_T("HD: %s"), file_path);
+			out_message(_T("HD: %s"), status_message_path(file_path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::HARD_DISK,
 							drv,
@@ -3402,9 +3407,9 @@ void EMU::play_tape(int drv, const _TCHAR* file_path)
 		} else if(tape_status[drv].wait_count == 0) {
 			vm->play_tape(drv, file_path);
 #if USE_TAPE > 1
-			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, file_path);
+			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, status_message_path(file_path));
 #else
-			out_message(_T("CMT: %s"), file_path);
+			out_message(_T("CMT: %s"), status_message_path(file_path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::TAPE,
 							drv,
@@ -3438,9 +3443,9 @@ void EMU::rec_tape(int drv, const _TCHAR* file_path)
 		} else if(tape_status[drv].wait_count == 0) {
 			vm->rec_tape(drv, file_path);
 #if USE_TAPE > 1
-			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, file_path);
+			out_message(_T("CMT%d: %s"), drv + BASE_TAPE_NUM, status_message_path(file_path));
 #else
-			out_message(_T("CMT: %s"), file_path);
+			out_message(_T("CMT: %s"), status_message_path(file_path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::TAPE,
 							drv,
@@ -3644,9 +3649,9 @@ void EMU::open_compact_disc(int drv, const _TCHAR* file_path)
 			vm->open_compact_disc(drv, file_path);
 			//printf(_T("open_compact_disc(): LOAD CDROM: %s\n"), file_path);
 #if USE_COMPACT_DISC > 1
-			out_message(_T("CD%d: %s"), drv + BASE_COMPACT_DISC_NUM, file_path);
+			out_message(_T("CD%d: %s"), drv + BASE_COMPACT_DISC_NUM, status_message_path(file_path));
 #else
-			out_message(_T("CD: %s"), file_path);
+			out_message(_T("CD: %s"), status_message_path(file_path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::COMPACT_DISC,
 							drv,
@@ -3722,9 +3727,9 @@ void EMU::open_laser_disc(int drv, const _TCHAR* file_path)
 		} else if(laser_disc_status[drv].wait_count == 0) {
 			vm->open_laser_disc(drv, file_path);
 #if USE_LASER_DISC > 1
-			out_message(_T("LD%d: %s"), drv + BASE_LASER_DISC_NUM, file_path);
+			out_message(_T("LD%d: %s"), drv + BASE_LASER_DISC_NUM, status_message_path(file_path));
 #else
-			out_message(_T("LD: %s"), file_path);
+			out_message(_T("LD: %s"), status_message_path(file_path));
 #endif
 			osdcall_string(EMU_MEDIA_TYPE::LASER_DISC,
 							drv,
@@ -3796,9 +3801,9 @@ void EMU::load_binary(int drv, const _TCHAR* file_path)
 					   EMU_MESSAGE_TYPE::MEDIA_MOUNTED | EMU_MESSAGE_TYPE::LOAD,
 					   (_TCHAR*)file_path);
 #if USE_BINARY_FILE > 1
-		out_message(_T("Load Binary%d: %s"), drv + BASE_BINARY_FILE_NUM, file_path);
+		out_message(_T("Load Binary%d: %s"), drv + BASE_BINARY_FILE_NUM, status_message_path(file_path));
 #else
-		out_message(_T("Load Binary: %s"), file_path);
+		out_message(_T("Load Binary: %s"), status_message_path(file_path));
 #endif
 	}
 }
@@ -3811,9 +3816,9 @@ void EMU::save_binary(int drv, const _TCHAR* file_path)
 	if(drv < USE_BINARY_FILE) {
  		vm->save_binary(drv, file_path);
 #if USE_BINARY_FILE > 1
-		out_message(_T("Save Binary%d: %s"), drv + BASE_BINARY_FILE_NUM, file_path);
+		out_message(_T("Save Binary%d: %s"), drv + BASE_BINARY_FILE_NUM, status_message_path(file_path));
 #else
-		out_message(_T("Save Binary: %s"), file_path);
+		out_message(_T("Save Binary: %s"), status_message_path(file_path));
 #endif
 		osdcall_string(EMU_MEDIA_TYPE::BINARY,
 					   drv,
@@ -3843,9 +3848,9 @@ void EMU::open_bubble_casette(int drv, const _TCHAR* file_path, int bank)
 		} else if(bubble_casette_status[drv].wait_count == 0) {
 			vm->open_bubble_casette(drv, file_path, bank);
 #if USE_BUBBLE > 1
-			out_message(_T("Bubble%d: %s"), drv + BASE_BUBBLE_NUM, file_path);
+			out_message(_T("Bubble%d: %s"), drv + BASE_BUBBLE_NUM, status_message_path(file_path));
 #else
-			out_message(_T("Bubble: %s"), file_path);
+			out_message(_T("Bubble: %s"), status_message_path(file_path));
 #endif
 			osdcall_bubble_inserted(drv, (_TCHAR*)file_path, bank);
 		}

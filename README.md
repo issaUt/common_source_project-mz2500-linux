@@ -98,6 +98,15 @@ FD を指定して起動する例:
 ./run_mz2500.sh --state ./runtime/mz2500/mz2500.sta0 --fd1 ./SOSPROG.D88
 ```
 
+メディアのパス表示を切り替える例:
+
+```bash
+./run_mz2500.sh --media-path name
+./run_mz2500.sh --media-path full
+```
+
+`--media-path name` を指定すると、タイトルおよびステータス表示に出るメディアパスをファイル名だけにできます。既定値は `full` です。
+
 ## 主な環境変数
 
 `run_mz2500.sh` は次の環境変数を受け付けます。
@@ -110,6 +119,7 @@ FD を指定して起動する例:
 - `MZ2500_STATE`
 - `MZ2500_STATE_SLOT`
 - `MZ2500_WINDOW_POS`
+- `MZ2500_MEDIA_PATH`
 
 例:
 

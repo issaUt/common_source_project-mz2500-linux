@@ -41,6 +41,7 @@ FD3_IMAGE="${MZ2500_FD3:-}"
 STATE_FILE="${MZ2500_STATE:-}"
 STATE_SLOT="${MZ2500_STATE_SLOT:-}"
 WINDOW_POS="${MZ2500_WINDOW_POS:-}"
+MEDIA_PATH="${MZ2500_MEDIA_PATH:-}"
 
 POSITIONAL_ARGS=()
 while [ "$#" -gt 0 ]; do
@@ -79,6 +80,11 @@ while [ "$#" -gt 0 ]; do
       POSITIONAL_ARGS+=("$1")
       [ "$#" -ge 2 ] || { echo "missing value for --window-pos" >&2; exit 1; }
       POSITIONAL_ARGS+=("$2")
+      shift 2
+      ;;
+    --media-path)
+      [ "$#" -ge 2 ] || { echo "missing value for --media-path" >&2; exit 1; }
+      MEDIA_PATH="$2"
       shift 2
       ;;
     --appdir)
@@ -181,6 +187,9 @@ if [ -n "$FD3_IMAGE" ]; then
 fi
 if [ -n "$WINDOW_POS" ]; then
   args+=("--window-pos" "$WINDOW_POS")
+fi
+if [ -n "$MEDIA_PATH" ]; then
+  args+=("--media-path" "$MEDIA_PATH")
 fi
 args+=("${POSITIONAL_ARGS[@]}")
 

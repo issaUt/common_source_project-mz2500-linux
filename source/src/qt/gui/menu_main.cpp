@@ -52,6 +52,22 @@
 
 #include "../emu_thread/emu_thread_tmpl.h"
 
+extern int media_path_mode;
+
+static QString format_media_path_message_qt(const QString& str)
+{
+	if(media_path_mode == 0) return str;
+	int sep = str.indexOf(QString::fromUtf8(": "));
+	if(sep < 0) return str;
+	QString prefix = str.left(sep + 2);
+	QString path_part = str.mid(sep + 2);
+	int slash = path_part.lastIndexOf(QChar('/'));
+	int bslash = path_part.lastIndexOf(QChar('\\'));
+	int pos = (slash > bslash) ? slash : bslash;
+	if(pos >= 0) path_part = path_part.mid(pos + 1);
+	return prefix + path_part;
+}
+
 //extern USING_FLAGS *using_flags;
 void DLL_PREFIX _resource_init(void)
 {
@@ -1091,7 +1107,7 @@ void Ui_MainWindowBase::do_set_window_title(QString s)
 	tmps = tmps + using_flags->get_config_name();
 	tmps = tmps + QString::fromUtf8(" (");
 	if(!s.isEmpty()) {
-		tmps = tmps + s;
+		tmps = tmps + format_media_path_message_qt(s);
 	}
 	tmps = tmps + QString::fromUtf8(")");
 	MainWindow->setWindowTitle(tmps);

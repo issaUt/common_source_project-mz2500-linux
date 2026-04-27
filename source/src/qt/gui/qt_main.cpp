@@ -62,6 +62,7 @@ bool _b_dump_envvar;
 std::string config_fullpath;
 int window_pos_x = -1;
 int window_pos_y = -1;
+int media_path_mode = 0; // 0=full path, 1=file name only
 
 DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
 {
@@ -150,6 +151,10 @@ DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
     _cl.append("window-pos");
     _cl.append("window-position");
     _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Set initial window position as X,Y."), QCoreApplication::translate("main", "X,Y")));
+    _cl.clear();
+
+    _cl.append("media-path");
+    _ret.append(QCommandLineOption(_cl, QCoreApplication::translate("main", "Set media path display mode for title/status messages."), QCoreApplication::translate("main", "full|name")));
     _cl.clear();
 
     _cl.append("state");
@@ -270,6 +275,15 @@ DLL_PREFIX void ProcessCmdLine_Sub(QCommandLineParser *cmdparser)
 				window_pos_x = x;
 				window_pos_y = y;
 			}
+		}
+	}
+	media_path_mode = 0;
+	if(cmdparser->isSet("media-path")) {
+		QString mode = cmdparser->value("media-path").trimmed().toLower();
+		if((mode == QString::fromUtf8("name")) ||
+		   (mode == QString::fromUtf8("basename")) ||
+		   (mode == QString::fromUtf8("short"))) {
+			media_path_mode = 1;
 		}
 	}
 }

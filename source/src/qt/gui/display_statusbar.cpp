@@ -22,6 +22,22 @@
 #include <QGraphicsEllipseItem>
 
 #include "mainwidget_base.h"
+
+extern int media_path_mode;
+
+static QString format_media_path_message(const QString& str)
+{
+	if(media_path_mode == 0) return str;
+	int sep = str.indexOf(QString::fromUtf8(": "));
+	if(sep < 0) return str;
+	QString prefix = str.left(sep + 2);
+	QString path_part = str.mid(sep + 2);
+	int slash = path_part.lastIndexOf(QChar('/'));
+	int bslash = path_part.lastIndexOf(QChar('\\'));
+	int pos = (slash > bslash) ? slash : bslash;
+	if(pos >= 0) path_part = path_part.mid(pos + 1);
+	return prefix + path_part;
+}
 //#include "emu.h"
 #include "qt_main.h"
 //#include "vm.h"
@@ -245,7 +261,7 @@ void Ui_MainWindowBase::do_redraw_status_bar(void)
 
 void Ui_MainWindowBase::message_status_bar(QString str)
 {
-	//QString tmpstr;
 	if(messagesStatusBar == NULL) return;
-	if(str != messagesStatusBar->text()) messagesStatusBar->setText(str);
+	QString shown = format_media_path_message(str);
+	if(shown != messagesStatusBar->text()) messagesStatusBar->setText(shown);
 }
