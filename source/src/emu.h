@@ -84,7 +84,7 @@ private:
 	
 	// state
 #ifdef USE_STATE
-	bool load_state_tmp(const _TCHAR* file_path);
+	bool load_state_tmp(const _TCHAR* file_path, const _TCHAR** error_message = nullptr);
 #endif
 
 public:

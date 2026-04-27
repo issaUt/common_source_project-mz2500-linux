@@ -3954,7 +3954,7 @@ void EMU::update_config()
 // ----------------------------------------------------------------------------
 
 #ifdef USE_STATE
-#define STATE_VERSION	2
+#define STATE_VERSION	3
 
 void EMU::save_state(const _TCHAR* file_path)
 {
@@ -4019,18 +4019,21 @@ void EMU::load_state(const _TCHAR* file_path)
 		config.romaji_to_kana = false;
 #endif
 
+		const _TCHAR* error_message = _T("State file is incompatible or corrupted.");
 		save_state(create_local_path(_T("$temp$.sta")));
-		if(!load_state_tmp(file_path)) {
-			out_debug_log(_T("failed to load state file\n"));
+		if(!load_state_tmp(file_path, &error_message)) {
+			out_debug_log(_T("failed to load state file: %s\n"), error_message);
+			out_message(_T("State load failed: %s"), error_message);
 			load_state_tmp(create_local_path(_T("$temp$.sta")));
 		}
 		FILEIO::RemoveFile(create_local_path(_T("$temp$.sta")));
 	}
 }
 
-bool EMU::load_state_tmp(const _TCHAR* file_path)
+bool EMU::load_state_tmp(const _TCHAR* file_path, const _TCHAR** error_message)
 {
 	bool result = false;
+	const _TCHAR* load_error = _T("State file is incompatible or corrupted.");
 	FILEIO* fio = new FILEIO();
 	osd->lock_vm();
 #ifdef USE_ZLIB
@@ -4163,16 +4166,31 @@ bool EMU::load_state_tmp(const _TCHAR* file_path)
 					if(vm->process_state(fio, true)) {
 						// check end of state
 						result = (fio->FgetInt32_LE() == -1);
+						if(!result) {
+							load_error = _T("State data footer is invalid.");
+						}
+					} else {
+						load_error = _T("Virtual machine state data is incompatible.");
 					}
 				} else {
+					load_error = _T("Virtual machine could not be reinitialized for state load.");
 					result = false;
 				}
+			} else {
+				load_error = _T("State config data is incompatible.");
 			}
+		} else {
+			load_error = _T("State file version is incompatible with this build.");
 		}
 		fio->Fclose();
+	} else {
+		load_error = _T("State file could not be opened.");
 	}
 	osd->unlock_vm();
 	delete fio;
+	if(error_message != nullptr) {
+		*error_message = load_error;
+	}
 	return result;
 }
 
