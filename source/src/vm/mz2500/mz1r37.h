@@ -4,7 +4,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.12.01 -
 
-	[ MZ-1R37 (640KB EMM) ]
+	[ MZ-1R37 (768KB EMM) ]
 */
 
 #ifndef _MZ1R37_H_
@@ -14,7 +14,7 @@
 #include "../../emu.h"
 #include "../device.h"
 
-#define MZ1R37_EMM_SIZE	(640 * 1024)
+#define MZ1R37_EMM_SIZE	(768 * 1024)
 
 namespace MZ2500 {
 
@@ -26,7 +26,7 @@ private:
 public:
 	MZ1R37(VM_TEMPLATE* parent_vm, EMU_TEMPLATE* parent_emu) : DEVICE(parent_vm, parent_emu)
 	{
-		set_device_name(_T("MZ-1R37 (640KB EMM)"));
+		set_device_name(_T("MZ-1R37 (768KB EMM)"));
 	}
 	~MZ1R37() {}
 	

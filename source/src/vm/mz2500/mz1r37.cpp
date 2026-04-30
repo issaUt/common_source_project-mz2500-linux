@@ -4,7 +4,7 @@
 	Author : Takeda.Toshiya
 	Date   : 2006.12.01 -
 
-	[ MZ-1R37 (640KB EMM) ]
+	[ MZ-1R37 (768KB EMM) ]
 */
 
 #include "mz1r37.h"
@@ -81,7 +81,7 @@ bool MZ1R37::get_debug_regs_info(_TCHAR *buffer_text, size_t buffer_len)
 }
 #endif
 
-#define STATE_VERSION	1
+#define STATE_VERSION	2
 
 bool MZ1R37::process_state(FILEIO* state_fio, bool loading)
 {

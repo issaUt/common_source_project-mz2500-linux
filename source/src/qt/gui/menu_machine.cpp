@@ -144,7 +144,7 @@ void Ui_MainWindowBase::retranslateMachineMenu(void)
 			"MZ-1E30 (SASI I/F)",
 			"MZ-1R12 (32KB SRAM)",
 			"MZ-1R13 (KANJI ROM)",
-			"MZ-1R37 (640KB EMM)",
+			"MZ-1R37 (768KB EMM)",
 			"W3100A TCP/IP",
 		};
 		menuMZ2500Options->setTitle(QApplication::translate("MenuMachine", "MZ-2500 Options", 0));
