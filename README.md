@@ -136,6 +136,8 @@ MZ2500_FD1=./SOSPROG.D88 \
 - WSLg + Qt Multimedia 環境では、音声まわりの警告が出ることがあります
 - ウィンドウ位置指定は、WSLg 側の制約で安定しないことがあります
 - Linux / WSLg では、MZ-2500 の ALGO キーは既定で `F11` に割り当てています（全角・半角キーは key release が不安定な環境があるため）
+- Linux / WSLg では、MZ-2500 の COPY キーは既定で `F12` を使用します
+- Linux / WSLg では、MZ-2500 の BREAK キーは既定で `Home` を使用します（Pause/Break キーが環境によって届かないため）
 
 ## 最新版実装合わせの状況
 

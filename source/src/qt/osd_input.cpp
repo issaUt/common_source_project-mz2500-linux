@@ -574,6 +574,9 @@ void OSD_BASE::key_down_native(int code, bool repeat)
 	if(!(code == VK_LSHIFT || code == VK_RSHIFT || code == VK_LCONTROL || code == VK_RCONTROL || code == VK_LMENU || code == VK_RMENU || code == VK_MENU)) {
 		code = keycode_conv[code];
 	}
+	if(using_flags != nullptr && using_flags->get_config_name() == QString::fromUtf8("mz2500") && code == VK_HOME) {
+		code = VK_PAUSE;
+	}
 	if(key_status[code] == 0 || keep_frames) {
 		repeat = false;
 	}
@@ -614,6 +617,9 @@ void OSD_BASE::key_up_native(int code)
 {
 	if(!(code == VK_LSHIFT || code == VK_RSHIFT || code == VK_LCONTROL || code == VK_RCONTROL || code == VK_LMENU || code == VK_RMENU || code == VK_MENU)) {
 		code = keycode_conv[code];
+	}
+	if(using_flags != nullptr && using_flags->get_config_name() == QString::fromUtf8("mz2500") && code == VK_HOME) {
+		code = VK_PAUSE;
 	}
 	if(key_status[code] == 0) {
 		return;
