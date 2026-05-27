@@ -81,8 +81,6 @@ extern DLL_PREFIX_I std::string cpp_homedir;
 extern DLL_PREFIX_I std::string cpp_confdir;
 extern DLL_PREFIX_I std::string my_procname;
 extern DLL_PREFIX_I std::string sRssDir;
-extern int window_pos_x;
-extern int window_pos_y;
 
 void Ui_MainWindow::do_set_mouse_enable(bool flag)
 {
@@ -1464,17 +1462,6 @@ int MainLoop(int argc, char *argv[])
 //	pgl->setFixedSize(pgl->width(), pgl->height());
 	// main loop
 	rMainWindow->LaunchEmuThread(hRunEmu_Real);
-	if((window_pos_x >= 0) && (window_pos_y >= 0)) {
-		const int initial_x = window_pos_x;
-		const int initial_y = window_pos_y;
-		auto apply_window_pos = [main_window, initial_x, initial_y]() {
-			main_window->setGeometry(initial_x, initial_y, main_window->width(), main_window->height());
-		};
-		apply_window_pos();
-		QTimer::singleShot(0, main_window, apply_window_pos);
-		QTimer::singleShot(250, main_window, apply_window_pos);
-		QTimer::singleShot(1000, main_window, apply_window_pos);
-	}
 
 #if defined(USE_JOYSTICK)
 	if(hRunEmu_Real.get() != nullptr) {

@@ -40,8 +40,8 @@ FD2_IMAGE="${MZ2500_FD2:-}"
 FD3_IMAGE="${MZ2500_FD3:-}"
 STATE_FILE="${MZ2500_STATE:-}"
 STATE_SLOT="${MZ2500_STATE_SLOT:-}"
-WINDOW_POS="${MZ2500_WINDOW_POS:-}"
 MEDIA_PATH="${MZ2500_MEDIA_PATH:-}"
+
 
 POSITIONAL_ARGS=()
 while [ "$#" -gt 0 ]; do
@@ -74,12 +74,6 @@ while [ "$#" -gt 0 ]; do
     --state-slot)
       [ "$#" -ge 2 ] || { echo "missing value for --state-slot" >&2; exit 1; }
       STATE_SLOT="$2"
-      shift 2
-      ;;
-    --window-pos)
-      POSITIONAL_ARGS+=("$1")
-      [ "$#" -ge 2 ] || { echo "missing value for --window-pos" >&2; exit 1; }
-      POSITIONAL_ARGS+=("$2")
       shift 2
       ;;
     --media-path)
@@ -185,33 +179,9 @@ fi
 if [ -n "$FD3_IMAGE" ]; then
   args+=("--fd3" "$FD3_IMAGE")
 fi
-if [ -n "$WINDOW_POS" ]; then
-  args+=("--window-pos" "$WINDOW_POS")
-fi
 if [ -n "$MEDIA_PATH" ]; then
   args+=("--media-path" "$MEDIA_PATH")
 fi
 args+=("${POSITIONAL_ARGS[@]}")
-
-if [ -n "$WINDOW_POS" ] && command -v wmctrl >/dev/null 2>&1; then
-  IFS=',' read -r window_x window_y <<EOF
-$WINDOW_POS
-EOF
-  "$EMU_BIN" "${args[@]}" &
-  emu_pid=$!
-  for _ in $(seq 1 40); do
-    if ! kill -0 "$emu_pid" 2>/dev/null; then
-      wait "$emu_pid"
-      exit $?
-    fi
-    if wmctrl -l | grep -F "emumz2500" >/dev/null 2>&1; then
-      wmctrl -r "emumz2500" -e "0,${window_x},${window_y},-1,-1" >/dev/null 2>&1 || true
-      break
-    fi
-    sleep 0.25
-  done
-  wait "$emu_pid"
-  exit $?
-fi
 
 exec "$EMU_BIN" "${args[@]}"

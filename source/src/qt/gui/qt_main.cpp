@@ -60,8 +60,6 @@ QProcessEnvironment _envvars;
 
 bool _b_dump_envvar;
 std::string config_fullpath;
-int window_pos_x = -1;
-int window_pos_y = -1;
 int media_path_mode = 0; // 0=full path, 1=file name only
 
 DLL_PREFIX QList<QCommandLineOption> SetOptions_Sub(QCommandLineParser *parser)
@@ -260,22 +258,6 @@ DLL_PREFIX void ProcessCmdLine_Sub(QCommandLineParser *cmdparser)
 	_b_dump_envvar = false;
 	if(cmdparser->isSet("dump-envvar")) {
 		_b_dump_envvar = true;
-	}
-	window_pos_x = -1;
-	window_pos_y = -1;
-	if(cmdparser->isSet("window-pos")) {
-		QString pos = cmdparser->value("window-pos").trimmed();
-		QStringList parts = pos.split(QString::fromUtf8(","));
-		if(parts.size() == 2) {
-			bool ok_x = false;
-			bool ok_y = false;
-			int x = parts.at(0).trimmed().toInt(&ok_x);
-			int y = parts.at(1).trimmed().toInt(&ok_y);
-			if(ok_x && ok_y) {
-				window_pos_x = x;
-				window_pos_y = y;
-			}
-		}
 	}
 	media_path_mode = 0;
 	if(cmdparser->isSet("media-path")) {
